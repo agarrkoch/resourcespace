@@ -115,6 +115,9 @@ $ghostscript_executable = 'gs';
 // Install Exiftool and set this path to enable metadata-writing when resources are downloaded
 // $exiftool_path='/usr/bin';
 
+// Path to Antiword - for text extraction / indexing of Microsoft Word Document (.doc) files
+// $antiword_path='/usr/bin';
+
 // Path to pdftotext - part of the XPDF project, see http://www.foolabs.com/xpdf/
 // Enables extraction of text from PDF files
 // $pdftotext_path='/usr/bin';
@@ -464,14 +467,14 @@ $videojs_resolution_selection_default_res = 'HD';
 /* Examples of preview options to convert to different types (don't forget to set the extension as well):
 * MP4: $ffmpeg_preview_options = '-f mp4 -ar 22050 -b 650k -ab 32k -ac 1';
 */
-$ffmpeg_preview = true;
-$ffmpeg_preview_seconds = 120; // how many seconds to preview
-$ffmpeg_preview_extension = "flv";
-$ffmpeg_preview_min_width = 32;
-$ffmpeg_preview_min_height = 18;
-$ffmpeg_preview_max_width = 700;
-$ffmpeg_preview_max_height = 394;
-$ffmpeg_preview_options = "-f flv -ar 22050 -b:v 650k -ab 32k -ac 1 -strict -2";
+$ffmpeg_preview=true; 
+$ffmpeg_preview_seconds=10000; # how many seconds to preview
+$ffmpeg_preview_extension="flv";
+$ffmpeg_preview_min_width=32;
+$ffmpeg_preview_min_height=18;
+$ffmpeg_preview_max_width=700;
+$ffmpeg_preview_max_height=394;
+$ffmpeg_preview_options="-f flv -ar 22050 -b:v 650k -ab 32k -ac 1 -strict -2 -loglevel error";
 
 // ffmpeg_global_options: options to be applied to every ffmpeg command.
 //$ffmpeg_global_options = "-loglevel panic"; // can be used for recent versions of ffmpeg when verbose output prevents run_command completing
@@ -1643,7 +1646,7 @@ $show_error_messages = true;
 // $log_error_messages_url="https://my.server.url/script_path.php";
 
 // Include detail of errors to user
-$show_detailed_errors = false;
+$show_detailed_errors = true;
 
 // Ability to set that the 'request' button on resources adds the item to the current collection (which then can be requested) instead of starting a request process for this individual item.
 $request_adds_to_collection = false;
@@ -1790,7 +1793,7 @@ $autorotate_ingest = false;
 // The default workflow state for imported files (-2 = pending submission, -1 = pending review, etc.)
 $staticsync_defaultstate = 0;
 // Archive state to set for resources where files have been deleted/moved from syncdir
-$staticsync_deleted_state = 2;
+$staticsync_deleted_state = 0; // Updated by Aida
 // Optional array of archive states for which missing files will be ignored and not marked as deleted, useful when using offline_archive plugin.
 $staticsync_ignore_deletion_states = array(2, 3);
 
@@ -3178,7 +3181,7 @@ Set to false to disable immediate preview generation. Superseded by $offline_job
 IMPORTANT: If enabled a frequent scheduled task must be created on the server to run batch/create_previews.php
 Note that this should be set to run as the web service account to avoid file permission issues
 */
-$enable_thumbnail_creation_on_upload = true;
+$enable_thumbnail_creation_on_upload = false;
 /*
 ===============================================================================
 Blocking immediate creation of core previews
@@ -3186,7 +3189,7 @@ Blocking immediate creation of core previews
 Optionally use this array to prevent the immediate creation at upload of core preview sizes ('col', 'thm' and 'pre')
 for the specified file extensions when one of the offline preview options above are configured.
 */
-$minimal_preview_creation_exclude_extensions = [];
+$minimal_preview_creation_exclude_extensions = ["mov"];
 
 // Option to automatically send a digest of all messages if a user has not logged on for the specified number of days
 $inactive_message_auto_digest_period = 7;

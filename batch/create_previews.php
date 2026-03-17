@@ -124,14 +124,22 @@ function sigint_handler()
 }
 
 
-// We define the functions to use for signal handling.
+error_log("=== PREVIEW SCRIPT START ===");
+error_log("Multiprocess: " . ($multiprocess ? "YES" : "NO"));
+
+/* ---------------- Signal handling ---------------- */
 if ($multiprocess) {
+    error_log("[1] Setting up signal handlers");
     pcntl_signal(SIGALRM, 'sigalrm_handler');
     pcntl_signal(SIGCHLD, 'sigchld_handler');
 }
+
+/* ---------------- Build SQL ---------------- */
+error_log("[2] Building resource SQL");
+
 $sql = "SELECT ref,
                file_extension,
-               IFNULL(preview_attempts, 1) preview_attempts,
+               IFNULL(preview_attempts, 1) AS preview_attempts,
                creation_date
           FROM resource 
          WHERE ref > 0
@@ -140,94 +148,164 @@ $sql = "SELECT ref,
            AND file_extension IS NOT NULL
            AND LENGTH(file_extension) > 0
            AND LOWER(file_extension) NOT IN (" . ps_param_insert(count($no_preview_extensions)) . ")";
-$params = array_merge(["i", SYSTEM_MAX_PREVIEW_ATTEMPTS], ps_param_fill($no_preview_extensions, "s"));
+
+$params = array_merge(
+    ["i", SYSTEM_MAX_PREVIEW_ATTEMPTS],
+    ps_param_fill($no_preview_extensions, "s")
+);
 
 $extraconditions = "";
 if (!$noimage) {
+    error_log("[3] Adding image-only filter");
     $extraconditions .= " AND has_image != ? ";
     $params[] = "i";
     $params[] = RESOURCE_PREVIEWS_ALL;
 }
 
+/* ---------------- Query resources ---------------- */
+error_log("[4] Executing resource query");
 $resources = ps_query($sql . $extraconditions, $params);
+error_log("[5] Resource query returned " . count($resources) . " rows");
 
-foreach ($resources as $resource) { // For each resources
-  // We wait for a fork emplacement to be freed.
+/* ---------------- Main loop ---------------- */
+$loop_counter = 0;
+
+foreach ($resources as $resource) {
+
+    $loop_counter++;
+    error_log("[6] LOOP START #$loop_counter | Resource {$resource['ref']}");
+
+    /* ---------- Fork throttling ---------- */
     if ($multiprocess) {
+        error_log("[7] Children count BEFORE throttle: " . count($children));
+
         while (count($children) >= $max_forks) {
-        // We clean children list.
+            error_log("[8] Max forks reached (" . count($children) . "), waiting...");
             reap_children();
+            error_log("[9] After reap_children(), children: " . count($children));
             sleep(1);
         }
     }
 
-    if (!$multiprocess || count($children) < $max_forks) { // Test if we can create a new fork.
-    // fork
+    /* ---------- Fork decision ---------- */
+    if (!$multiprocess || count($children) < $max_forks) {
+
+        error_log("[10] Forking decision reached for resource {$resource['ref']}");
+
         if (!$multiprocess) {
             $pid = false;
+            error_log("[11] Multiprocess OFF – running inline");
         } else {
             $pid = pcntl_fork();
+            error_log("[11] pcntl_fork() returned PID = " . var_export($pid, true));
         }
 
+        /* ---------- Fork failure ---------- */
         if ($pid == -1) {
+            error_log("[12] FORK FAILED – exiting");
             die("fork failed!\n");
-        } elseif ($pid) {
-            array_push($children, $pid);
-        } else {
+        }
+
+        /* ---------- Parent ---------- */
+        elseif ($pid) {
+            error_log("[13] Parent process – child PID $pid registered");
+            $children[] = $pid;
+        }
+
+        /* ---------- Child ---------- */
+        else {
+            error_log("[14] CHILD STARTED | PID " . getmypid() . " | Resource {$resource['ref']}");
+
             if ($multiprocess) {
                 pcntl_signal(SIGCHLD, SIG_IGN);
                 pcntl_signal(SIGINT, SIG_DFL);
+                error_log("[15] Child signal handlers set");
             }
 
-          // Processing resource.
-            echo sprintf("Processing resource id " . $resource['ref'] . " - preview attempt #" . $resource['preview_attempts'] . "\n");
+            error_log("[16] Processing resource {$resource['ref']} (attempt {$resource['preview_attempts']})");
 
             $start_time = microtime(true);
 
-          // For each fork, we need a new connection to database.
+            /* ---------- DB reconnect ---------- */
+            error_log("[17] Child reconnecting to database");
             sql_connect();
+            error_log("[18] Child database connection OK");
 
-          # Below added to catch an issue with previews failing when large video files were taking a long time to copy to StaticSync location
-            echo "Created at: " . $resource['creation_date'] . "\nTime now: " . date("Y-m-d H:i:s") . "\n";
+            /* ---------- Age check ---------- */
+            error_log("[19] Resource creation date: {$resource['creation_date']}");
             $resourceage = time() - strtotime($resource['creation_date']);
+            error_log("[20] Resource age (seconds): $resourceage");
+
             if ($resource['preview_attempts'] > 3 && $resourceage < 1000) {
-                echo "Just added so may not have finished copying, resetting attempts \n";
-                ps_query("UPDATE resource SET preview_attempts = 0 WHERE ref = ?", array("i", $resource['ref']));
-                continue;
+                error_log("[21] Resource too new; resetting preview_attempts and skipping");
+                ps_query(
+                    "UPDATE resource SET preview_attempts = 0 WHERE ref = ?",
+                    array("i", $resource['ref'])
+                );
+                error_log("[22] preview_attempts reset; exiting child early");
+                exit(0);
             }
 
-          #check whether resource already has mp3 preview in which case we set preview_attempts to 5
+            /* ---------- MP3 preview shortcut ---------- */
             if (
                 $resource['file_extension'] != "mp3"
                 && in_array($resource['file_extension'], $ffmpeg_audio_extensions)
                 && file_exists(get_resource_path($resource['ref'], true, "", false, "mp3"))
             ) {
-                $ref = $resource['ref'];
-                echo "Resource already has mp3 preview\n";
-                ps_query("UPDATE resource SET preview_attempts = 5 WHERE ref = ?", array("i", $ref));
-            } elseif ($resource['preview_attempts'] < 5 && $resource['file_extension'] != "") {
-                if (!empty($resource['file_path'])) {
-                    $ingested = false;
-                } else {
-                    $ingested = true;
-                }
-
-            # Increment the preview count.
-                  ps_query("UPDATE resource SET preview_attempts = IFNULL(preview_attempts, 1) + 1 WHERE ref = ?", array("i", $resource['ref']));
-
-                  $success = create_previews($resource['ref'], false, $resource['file_extension'], false, false, -1, $ignoremaxsize, $ingested);
-                  hook('after_batch_create_preview');
-                  $success_string = ($success ? "successfully" : "with error" );
-                  echo sprintf("Processed resource %d %s in %01.2f seconds.\n", $resource['ref'], $success_string, microtime(true) - $start_time);
+                error_log("[23] MP3 preview already exists");
+                ps_query(
+                    "UPDATE resource SET preview_attempts = 5 WHERE ref = ?",
+                    array("i", $resource['ref'])
+                );
+                error_log("[24] preview_attempts set to 5");
             }
 
+            /* ---------- Preview generation ---------- */
+            elseif ($resource['preview_attempts'] < 5 && $resource['file_extension'] != "") {
+
+                $ingested = empty($resource['file_path']);
+                error_log("[25] Ingested = " . ($ingested ? "YES" : "NO"));
+
+                error_log("[26] Incrementing preview_attempts");
+                ps_query(
+                    "UPDATE resource SET preview_attempts = IFNULL(preview_attempts, 1) + 1 WHERE ref = ?",
+                    array("i", $resource['ref'])
+                );
+
+                error_log("[27] Calling create_previews()");
+                $success = create_previews(
+                    $resource['ref'],
+                    false,
+                    $resource['file_extension'],
+                    false,
+                    false,
+                    -1,
+                    $ignoremaxsize,
+                    $ingested
+                );
+
+                error_log("[28] create_previews() returned: " . var_export($success, true));
+
+                hook('after_batch_create_preview');
+                error_log("[29] after_batch_create_preview hook executed");
+
+                error_log(
+                    "[30] Finished resource {$resource['ref']} in " .
+                    round(microtime(true) - $start_time, 2) . " seconds"
+                );
+            }
+
+            /* ---------- Child exit ---------- */
             if ($multiprocess) {
-                // We exit in order to avoid fork bombing.
+                error_log("[31] Child exiting cleanly | PID " . getmypid());
                 exit(0);
             }
         }
-    } // Test if we can create a new fork
-} // For each resources
+    }
+
+    error_log("[32] LOOP END #$loop_counter");
+}
+
 
 // We wait for all forks to exit.
 if ($multiprocess) {

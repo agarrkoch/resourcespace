@@ -657,6 +657,7 @@ function ps_query($sql, array $parameters = array(), $cache = "", $fetchrows = -
 
             file_put_contents($cache_file, json_encode($cachedata));
         } catch (Exception $e) {
+			debug("storagedir = " . $storagedir);
             debug("SQL_CACHE: {$e->getMessage()}");
         }
         unset($GLOBALS["use_error_exception"]);

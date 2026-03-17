@@ -1930,6 +1930,7 @@ function get_temp_dir($asUrl = false, $uniqid = "")
         // Make sure the dir exists.
         if (!is_dir($storagedir . "/tmp")) {
             // If it does not exist, create it.
+			echo $storagedir;
             mkdir($storagedir . "/tmp", 0777);
         }
         $result = $storagedir . "/tmp";
@@ -2412,7 +2413,7 @@ function get_imagemagick_path($utilityname, $exeNames, &$checked_path)
 */
 function get_utility_path($utilityname, &$checked_path = null)
 {
-    global $ghostscript_path, $ghostscript_executable, $ffmpeg_path, $exiftool_path, $pdftotext_path,
+    global $ghostscript_path, $ghostscript_executable, $ffmpeg_path, $exiftool_path, $antiword_path, $pdftotext_path,
            $blender_path, $archiver_path, $archiver_executable, $python_path, $fits_path;
 
     $checked_path = null;
@@ -2557,6 +2558,20 @@ function get_utility_path($utilityname, &$checked_path = null)
                 return false;
             }
             return $path . " {$exiftool_global_options} ";
+
+        case 'antiword':
+            if (!isset($antiword_path) || $antiword_path === '') {
+                return false;
+            }
+
+            return get_executable_path(
+                $antiword_path,
+                [
+                    'unix' => 'antiword',
+                    'win'  => 'antiword.exe'
+                ],
+                $checked_path
+            );
 
         case 'pdftotext':
             if (!isset($pdftotext_path) || $pdftotext_path === '') {
@@ -4105,14 +4120,14 @@ function daily_stat($activity_type, $object_ref, int $to_add = 1)
     }
 
     # First check to see if there's a row
-    $count = ps_value("select count(*) value from daily_stat where year = ? and month = ? and day = ? and usergroup = ? and activity_type = ? and object_ref = ? and external = ?", array("i", $year, "i", $month, "i", $day, "i", $usergroup, "s", $activity_type, "i", $object_ref, "i", $external), 0, "daily_stat"); // Cache this as it can be moderately intensive and is called often.
+    $count = ps_value("select count(*) value from daily_stat where year = ? and month = ? and day = ? and usergroup = ? and activity_type = ? and object_ref = ? and `external` = ?", array("i", $year, "i", $month, "i", $day, "i", $usergroup, "s", $activity_type, "i", $object_ref, "i", $external), 0, "daily_stat"); // Cache this as it can be moderately intensive and is called often.
     if ($count == 0) {
         # insert
-        ps_query("insert into daily_stat (year, month, day, usergroup, activity_type, object_ref, external, count) values (? ,? ,? ,? ,? ,? ,? , ?)", array("i", $year, "i", $month, "i", $day, "i", $usergroup, "s", $activity_type, "i", $object_ref, "i", $external, "i", $to_add), false, -1, true, 0);
+        ps_query("insert into daily_stat (year, month, day, usergroup, activity_type, object_ref, `external`, count) values (? ,? ,? ,? ,? ,? ,? , ?)", array("i", $year, "i", $month, "i", $day, "i", $usergroup, "s", $activity_type, "i", $object_ref, "i", $external, "i", $to_add), false, -1, true, 0);
         clear_query_cache("daily_stat"); // Clear the cache to flag there's a row to the query above.
     } else {
         # update
-        ps_query("update daily_stat set count = count+? where year = ? and month = ? and day = ? and usergroup = ? and activity_type = ? and object_ref = ? and external = ?", array("i",$to_add,"i", $year, "i", $month, "i", $day, "i", $usergroup, "s", $activity_type, "i", $object_ref, "i", $external), false, -1, true, 0);
+        ps_query("update daily_stat set count = count+? where year = ? and month = ? and day = ? and usergroup = ? and activity_type = ? and object_ref = ? and `external` = ?", array("i",$to_add,"i", $year, "i", $month, "i", $day, "i", $usergroup, "s", $activity_type, "i", $object_ref, "i", $external), false, -1, true, 0);
     }
 }
 

@@ -2,6 +2,7 @@
 
 include_once __DIR__ . "/../../include/boot.php";
 include_once __DIR__ . "/../../include/image_processing.php";
+include_once __DIR__ . "/../../include/config_staticsync.php";
 command_line_only();
 
 $send_notification  = false;
@@ -232,8 +233,24 @@ function ProcessFolder($folder)
         if ($staticsync_mapped_category_tree && !$treeprocessed) {
             $path_parts = explode("/", $shortpath);
             array_pop($path_parts);
-            $treenodes = touch_category_tree_level($path_parts);
-            $treeprocessed = true;
+			
+			#### Edited by Aida G. November 12, 2025
+			if (strpos($folder, 'Photos') !== false) {
+				$path_parts = array_slice($path_parts, 2);	        	
+			}
+			
+			if (strpos($folder, 'Camera Card Delivery') !== false) {
+				$path_parts = array_slice($path_parts, 1, -1);
+			}
+			
+			# Only process treenodes if they are not studio files;
+			# Studio treenodes are processed at the file level
+			if (strpos($folder, 'Studio') === false){ 		
+				$treenodes=touch_category_tree_level($path_parts);
+				$treeprocessed=true;
+			}
+			
+			####
         }
 
         # -----FOLDERS-------------
@@ -257,11 +274,66 @@ function ProcessFolder($folder)
 
         # -------FILES---------------
         if (($filetype == "file") && (substr($file, 0, 1) != ".") && (strtolower($file) != "thumbs.db")) {
-            if (isset($staticsync_file_minimum_age) && (time() -  filemtime($folder . "/" . $file) < $staticsync_file_minimum_age)) {
+            
+			##### Edited by Aida Garrido Nov 12, 2025
+			if (strpos($folder, 'Camera Card Delivery') !== false && !str_ends_with($file, '.mp4')) {
+				//Only process window dubs for Camera Card Delivery files
+				    continue;
+			}
+			
+			if (strpos($folder, 'Studio') !== false && !str_ends_with($file, '.mov')) {
+				//Only process window dubs for Camera Card Delivery files
+				    continue;
+			}
+			
+			#####
+			
+			if (isset($staticsync_file_minimum_age) && (time() -  filemtime($folder . "/" . $file) < $staticsync_file_minimum_age)) {
                 // Don't process this file yet as it is too new
                 echo " - " . $file . " is too new (" . (time() -  filemtime($folder . "/" . $file)) . " seconds), skipping\n";
                 continue;
             }
+			
+			##### Edited by Aida Garrido Nov 19, 2025
+			
+			if (strpos($folder, 'Studio') !== false) {
+					$re8 = '/^(\d{4}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01]))/'; //YYYYMMDD
+					$re6 = '/(\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01]))/'; //YYMMDD
+
+					if (preg_match($re8, $file, $m)) {
+						$date = (string) $m[1];
+						$date = substr($date, 0, 4) . '-' . substr($date, 4, 2) . '-' . substr($date, 6, 2);
+					}
+					elseif (preg_match($re6, $file, $m)) {
+						    $date = $m[1];
+							$date = '20' . $date;
+							$date = substr($date, 0, 4) . '-' . substr($date, 4, 2) . '-' . substr($date, 6, 2);
+					} else {
+							//extract date from EXIF DATA
+							$cmd = 'exiftool -json -ModifyDate ' . escapeshellarg($fullpath);
+							$json = shell_exec($cmd);
+							$data = json_decode($json, true);							
+						if (!is_array($data) || !isset($data[0]['ModifyDate'])) {
+							    $date = 'NODATE';
+						} else {
+								$mediaDate = $data[0]['ModifyDate'];
+								$digitsOnly = preg_replace('/\D/', '', $mediaDate);
+								$first8 = substr($digitsOnly, 0, 8);
+								$date = substr($first8, 0, 4) . '-' . substr($first8, 4, 2) . '-' . substr($first8, 6, 2);
+						}
+					}
+					
+		            $path_parts = explode("/", $shortpath);
+		            array_pop($path_parts);
+					$path_parts = array_slice($path_parts, 1, 2);
+					$path_parts_f = array_merge($path_parts, [$date]);
+		            $treenodes=touch_category_tree_level($path_parts_f);
+		            $treeprocessed=true;
+						
+					
+				}
+				
+				#####
 
             # Work out extension
             $extension = mb_strcut(parse_filename_extension($file), 0, 10);
@@ -289,23 +361,11 @@ function ProcessFolder($folder)
                 $extension = $modified_extension;
             }
 
-            // Verify if the file would actually pass the upload checks to prevent any unnecessary processing (e.g. collections)
-            $dry_run_process_file_upload = process_file_upload(
-                new SplFileInfo($fullpath),
-                new SplFileInfo(get_temp_dir(false) . '/staticsync/' . generateSecureKey(16) . '.bin'),
-                ['file_move' => 'dry_run']
-            );
-            if (!$dry_run_process_file_upload['success']) {
-                printf(
-                    ' * Skipping file - %s: %s%s',
-                    $fullpath,
-                    $dry_run_process_file_upload['error']->i18n($lang),
-                    PHP_EOL
-                );
+            global $banned_extensions, $file_checksums, $file_upload_block_duplicates, $file_checksums_50k;
+            # Check to see if extension is banned, do not add if it is banned
+            if (array_search(strtolower($extension), array_map('strtolower', $banned_extensions)) !== false) {
                 continue;
             }
-
-            global $file_checksums, $file_upload_block_duplicates, $file_checksums_50k;
 
             if ($count > $staticsync_max_files) {
                 return true;
@@ -347,11 +407,44 @@ function ProcessFolder($folder)
                     # Find or create a featured collection for this folder as required.
                     $e = explode("/", $shortpath);
                     $fallback_fc_categ_name = ucwords($e[0]);
-                    $name = (count($e) == 1) ? '' : $e[count($e) - 2];
-                    echo " - Collection '{$name}'" . PHP_EOL;
+                    
+					#### Edited by Aida G. Nov 19, 2025
+					if (strpos($shortpath, 'Camera Card Delivery') !== false) {
+					    // If path contains "Camera Card Delivery", take the third-to-last element
+					    $name = (count($e) >= 3) ? $e[count($e) - 3] : '';
+					} elseif (strpos($shortpath, 'Studio')){
+						$name = $date;
+					} elseif (strpos($shortpath, 'Photos')){
+						$name = $e[count($e) - 2];
+					} 
+					else {
+					    // Otherwise, use the original rule
+					    $name = (count($e) == 1) ? '' : $e[count($e) - 2];
+					}
+					####
+                    
+					echo " - Collection '{$name}'" . PHP_EOL;
                     // The real featured collection will always be the last directory in the path
                     $proposed_fc_categories = array_values(array_diff($e, array_slice($e, -2)));
-                    if (count($proposed_fc_categories) == 0) {
+                    
+					#### Edited by Aida G. Nov 19, 2025
+					if (strpos($folder, '_picturetest') !== false)
+					{
+					    $proposed_fc_categories = array_slice($e, 1, -2);
+					} elseif (strpos($folder, 'Studio') !== false)
+					{
+					    $proposed_fc_categories = array_slice($e, 1, 2);
+					}
+					elseif (strpos($folder, 'Camera Card Delivery') !== false)
+					{
+					    // Skip volume, date folder, and file
+					    $proposed_fc_categories = array_slice($e, 1, -3);
+					} elseif (strpos($folder, 'Photos') !== false){
+						$proposed_fc_categories = array_slice($e, 2, 2);
+					}		
+					####
+					
+					if (count($proposed_fc_categories) == 0) {
                         if (count($e) > 1) {
                             // This is a top level folder - this is needed to ensure no duplication of existing top level FCs
                             echo " - File is in a top level folder" . PHP_EOL;
@@ -431,30 +524,12 @@ function ProcessFolder($folder)
                             $params[] = 'i';
                             $params[] = $collection_parent;
                         }
-
-                        /*
-                        When trying to determine if we already have a featured collection, the viable options are:-
-                        - an actual featured collection (i.e. has resources), or;
-                        - an ambiguous state record (i.e. it doesn't have resources nor any children - so not a true
-                        category either; note they get displayed as a category by default).
-                        */
-                        $collection = ps_value(
-                              "SELECT DISTINCT c.ref as `value`,
-                                      count(DISTINCT cr.resource) > 0 AS has_resources
-                                 FROM collection AS c
-                            LEFT JOIN collection_resource AS cr on c.ref = cr.collection
-                            LEFT JOIN collection AS cc ON c.ref = cc.parent
-                                WHERE c.parent {$parent_sql}
-                                  AND c.`type` = ?
-                                  AND c.`name` = ?
-                             GROUP BY c.ref
-                               HAVING count(DISTINCT cr.resource) > 0
-                                   OR (count(DISTINCT cr.resource) = 0 AND count(DISTINCT cc.ref) = 0)
-                             ORDER BY has_resources DESC
-                                LIMIT 1",
-                            array_merge($params, ['i', COLLECTION_TYPE_FEATURED, 's', ucwords($name)]),
-                            0
-                        );
+						
+						// Edited by Aida Garrido Novemeber 18, 2025
+						// Changed >0 to >=0; otherwise would recreate same FC collection if empty
+                        $collection_sql = 'SELECT DISTINCT ref as `value` FROM collection c LEFT JOIN collection_resource cr on c.ref = cr.collection 
+                                           WHERE parent ' . $parent_sql . ' AND type = ? AND name = ? GROUP BY c.ref HAVING count(DISTINCT cr.resource) >= 0';
+                        $collection = ps_value($collection_sql, array_merge($params, ['i', COLLECTION_TYPE_FEATURED, 's', ucwords($name)]), 0);
 
                         if ($collection == 0) {
                             $collection = create_collection($userref, ucwords($name));
@@ -523,6 +598,12 @@ function ProcessFolder($folder)
                 } else {
                     $title = str_ireplace(".$extension", '', $file);
                 }
+				
+				// Added by Aida G. Dec 10, 2025
+				// Remove _Window for Camera Card files
+				if (strpos($folder, 'Camera Card Delivery')) {
+					$title = str_replace("_WINDOW", "", $title);
+				}
 
                 $modified_title = hook('modify_title', 'staticsync', array( $title ));
                 if ($modified_title !== false) {
@@ -578,9 +659,10 @@ function ProcessFolder($folder)
                                         }
                                     } elseif (is_int_loose($field)) {
                                         # Save the value
-                                        $value = $path_parts[$level - 1];
-                                        $modifiedval = hook('staticsync_mapvalue', '', array($r, $value));
-                                        if ($modifiedval) {
+                                        $value = $path_parts[$level-1];
+                                        $modifiedval = hook('staticsync_mapvalue','',array($r, $value, $field));
+                                        if($modifiedval)
+                                            {
                                             $value = $modifiedval;
                                         }
                                         $field_info = get_resource_type_field($field);
@@ -1101,6 +1183,8 @@ foreach ($alternativefiles as $alternativefile) {
     }
 }
 
+#### Edited by Aida G. Nov 5, 2025
+
 echo " - Checking deleted files" . PHP_EOL;
 
 if (!$staticsync_ingest) {
@@ -1190,18 +1274,19 @@ if (!$staticsync_ingest) {
     }
 }
 
-if (count($errors) > 0) {
-    echo PHP_EOL . "ERRORS: -" . PHP_EOL;
-    echo implode(PHP_EOL, $errors) . PHP_EOL;
-    if ($send_notification) {
-        $notify_users = get_notification_users("SYSTEM_ADMIN");
-        foreach ($notify_users as $notify_user) {
-            $admin_notify_users[] = $notify_user["ref"];
-        }
-        $message = "STATICSYNC ERRORS FOUND: - " . PHP_EOL . implode(PHP_EOL, $errors);
-        message_add($admin_notify_users, $message);
-    }
-}
+
+//if (count($errors) > 0) {
+//    echo PHP_EOL . "ERRORS: -" . PHP_EOL;
+//    echo implode(PHP_EOL, $errors) . PHP_EOL;
+//    if ($send_notification) {
+//        $notify_users = get_notification_users("SYSTEM_ADMIN");
+//        foreach ($notify_users as $notify_user) {
+//            $admin_notify_users[] = $notify_user["ref"];
+//        }
+//        $message = "STATICSYNC ERRORS FOUND: - " . PHP_EOL . implode(PHP_EOL, $errors);
+//       message_add($admin_notify_users, $message);
+//    }
+//}
 
 echo "\nStaticSync completed at " . date('Y-m-d H:i:s', time()) . PHP_EOL;
 

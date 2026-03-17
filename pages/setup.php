@@ -444,6 +444,7 @@ h2#dbaseconfig{  min-height: 32px;}
             $ghostscript_path = "";
             $ffmpeg_path = "";
             $exiftool_path = "";
+            $antiword_path = "";
             $pdftotext_path = "";
 
             foreach ($search_paths as $path) {
@@ -459,6 +460,9 @@ h2#dbaseconfig{  min-height: 32px;}
                 if (file_exists($path . '/exiftool')) {
                     $exiftool_path = $path;
                 }
+                if (file_exists($path . '/antiword')) {
+                    $antiword_path = $path;
+                }
                 if (file_exists($path . '/pdftotext')) {
                     $pdftotext_path = $path;
                 }
@@ -468,6 +472,7 @@ h2#dbaseconfig{  min-height: 32px;}
             $ghostscript_path = "";
             $ffmpeg_path      = "";
             $exiftool_path    = "";
+            $antiword_path    = "";
             $pdftotext_path   = "";     
             $mysql_bin_path   = "";
         }
@@ -716,6 +721,7 @@ h2#dbaseconfig{  min-height: 32px;}
         $ghostscript_path = sslash(get_post('ghostscript_path'));
         $ffmpeg_path = sslash(get_post('ffmpeg_path'));
         $exiftool_path = sslash(get_post('exiftool_path'));
+        $antiword_path = sslash(get_post('antiword_path'));
         $pdftotext_path = sslash(get_post('pdftotext_path'));
 
         if ($imagemagick_path != '') {
@@ -765,6 +771,17 @@ h2#dbaseconfig{  min-height: 32px;}
                 $errors['exiftool_path'] = true;
             } else {
                 $config_output .= "\$exiftool_path = '$exiftool_path';\r\n";
+            }
+        }
+
+        if ($antiword_path != '') {
+            if (stripos($antiword_path . '/antiword' . $exe_ext, 'phar://') !== false) {
+                exit($lang["setup-err_phar_injection"]);
+            }
+            if (!file_exists($antiword_path . '/antiword' . $exe_ext)) {
+                $errors['antiword_path'] = true;
+            } else {
+                $config_output .= "\$antiword_path = '$antiword_path';\r\n";
             }
         }
 
@@ -1485,6 +1502,13 @@ else
                     <?php } ?>
                     <label for="exiftoolpath"><?php echo str_replace("%bin", "Exiftool", $lang["setup-binpath"]) . ":"; ?></label><input id="exiftoolpath" type="text" name="exiftool_path" value="<?php echo escape($exiftool_path); ?>"/>
                 </div>
+                <div class="configitem">
+                <?php if(isset($errors['antiword_path'])){?>
+                        <div class="erroritem"><?php echo escape($lang["setup-err_path"]);?> 'AntiWord'.</div>
+                    <?php } ?>
+                    <label for="antiwordpath"><?php echo str_replace("%bin", "AntiWord", $lang["setup-binpath"]) . ":"; ?></label><input id="antiwordpath" type="text" name="antiword_path" value="<?php echo escape($antiword_path); ?>"/>
+                </div>
+                
                 <div class="configitem">
                     <?php if(isset($errors['pdftotext_path'])){?>
                         <div class="erroritem"><?php echo escape($lang["setup-err_path"]);?> 'pdftotext'.</div>
