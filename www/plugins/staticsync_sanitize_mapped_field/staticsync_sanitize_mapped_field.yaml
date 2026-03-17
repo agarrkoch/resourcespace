@@ -1,9 +1,0 @@
-name: staticsync_sanitize_mapped_field
-title: Staticsync Sanitize Mapped Field
-author: Aida Garrido
-version: 1.0
-desc: Sanitizes the staticsync mapped fields defined in config.php by replacing underscores with spaces and capitalizing the first letter.
-icon: fa fa-magic
-default_priority: 100
-category: asset processing
-disable_group_select: 1

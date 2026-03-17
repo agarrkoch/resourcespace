@@ -1,9 +1,0 @@
-name: normalize_studio_type
-title: Normalize Studio Type
-author: Aida Garrido
-version: 1.0
-desc: Normalizes studio types to ISO or Line Cut
-icon: fa fa-magic
-default_priority: 99
-category: asset processing
-disable_group_select: 1
