@@ -5,6 +5,7 @@
 # Ignore config and file storage
 include/config.php
 filestore/
+filestorea/
 
 # Ignore logs or temporary files
 *.log

@@ -1,5 +1,5 @@
 <?php
-include_once "/opt/homebrew/var/www/plugins/normalize_show_name/cunymediaids.php";
+require_once __DIR__ . '/../../../cuny_scripts/cunymediaids.php';
 
 function HookStaticsync_sanitize_mapped_fieldAllStaticsync_mapvalue($resource, $value, $field=null)
 {
@@ -8,7 +8,7 @@ function HookStaticsync_sanitize_mapped_fieldAllStaticsync_mapvalue($resource, $
 
     if ($field == 89) { //89 is corresponds to prodution title field
         
-        $show = CheckShowName($formatted_value, $shows_dict);
+        $show = CheckShowName($formatted_value);
         
         if ($show != $value) {
             $formatted_value = $show;

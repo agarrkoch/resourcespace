@@ -1,5 +1,5 @@
 <?php
-require_once '/opt/homebrew/var/www/plugins/normalize_show_name/cunymediaids.php';
+require_once __DIR__ . '/../../../cuny_scripts/cunymediaids.php';
 
 function HookNormalize_show_nameAllUpdate_field($resource, $field, $value, $existing, $fieldinfo, $newnodes, $newvalues)
 {
@@ -17,10 +17,14 @@ function HookNormalize_show_nameAllUpdate_field($resource, $field, $value, $exis
 }
 
 function CheckShowName($value){
-	global $shows_dict;
     $value_c = str_replace('_', ' ', $value);
     
-    $show = check_similarity($value_c, $shows_dict);
+	if (strlen($value) <= 6) {
+	    $show = get_full_show_name($value_c);
+	} else {
+	    $show = check_similarity($value_c);
+	}
+	
     echo " - Similarity check result: {$show}" . PHP_EOL;
     
     return $show;
