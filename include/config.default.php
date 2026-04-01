@@ -1317,7 +1317,7 @@ $php_time_limit = PHP_SAPI != "cli" ? 300 : 0;
 $cron_job_time_limit = 1800;
 
 // Should the automatically produced video preview file be available as a separate download?
-$flv_preview_downloadable = false;
+$flv_preview_downloadable = true;
 
 // Honor display condition settings on simple search for the included fields.
 $simple_search_display_condition = array();
