@@ -141,7 +141,12 @@ if ($alt_access) {
             </td>
 
             <?php
-            if ($access == 0 && resource_download_allowed($ref, "", $resource["resource_type"], $altfiles[$n]["ref"])) { ?>
+			
+			// Build path to alternative file
+			$alt_path = get_resource_path($ref, true, '', false, $altfiles[$n]["file_extension"], -1, 1, false, '', $altfiles[$n]['ref']);
+			$alt_exists = file_exists($alt_path);
+			
+            if ($alt_exists && $access == 0 && resource_download_allowed($ref, "", $resource["resource_type"], $altfiles[$n]["ref"])) { ?>
                 <td <?php hook("modifydownloadbutton") ?> class="DownloadButton">
                     <?php
                     if ($terms_download || $save_as) {
