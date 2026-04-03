@@ -981,18 +981,16 @@ if ($k!="" && !$internal_share_access) {$edit_access=0;}
                                             hook('beforenodownloadresult');
 
                                             $generate_data_only_pdf_file = false;
-                                            $download_file_name          = (0 == $counter) ? $lang['offlineresource'] : $lang['access1'];
 
                                             if(in_array($resource['resource_type'], $data_only_resource_types) && array_key_exists($resource['resource_type'], $pdf_resource_type_templates))
                                                 {
-                                                $download_file_name          = get_resource_type_name($resource['resource_type']);
                                                 $generate_data_only_pdf_file = true;
                                                 }
                                             ?>
                                             <tr class="DownloadDBlend">
                                                 <td class="DownloadFileName">
-                                                    <h2><?php echo escape($download_file_name); ?></h2>
-                                                    <p><?php echo escape($lang["notavailableshort"]); ?></p>
+                                                    <h2><?php echo escape(isset($original_download_name) ? str_replace_formatted_placeholder("%extension", $resource["file_extension"], $original_download_name, true) : str_replace_formatted_placeholder("%extension", $resource["file_extension"], $lang["originalfileoftype"])); ?></h2>
+                                                    <p><?php echo escape($lang['offlineresource']); ?></p>
                                                 </td>
 
                                                 <?php

@@ -133,10 +133,23 @@ if ($alt_access) {
                     <?php
                 }
                 ?>
+				
+				<?php
+				// Build path to alternative file
+				$alt_path = get_resource_path($ref, true, '', false, $altfiles[$n]["file_extension"], -1, 1, false, '', $altfiles[$n]['ref']);
+				$alt_exists = file_exists($alt_path);
+				
+				if ($alt_exists){
+					$size_to_print = formatfilesize($altfiles[$n]["file_size"]);
+				} else {
+					$size_to_print = $lang['offlineresource'];
+				}
+				?>
+				
                 <div class="AlternativeFileText">
                     <h2><?php echo escape($altfiles[$n]["name"]); ?></h2>
                     <p><?php echo escape($altfiles[$n]["description"]); ?></p>
-                    <p><?php echo escape(str_replace('&nbsp;', ' ', formatfilesize($altfiles[$n]["file_size"]))); ?></p>
+                    <p><?php echo escape(str_replace('&nbsp;', ' ', $size_to_print)); ?></p>
                 </div>
             </td>
 
