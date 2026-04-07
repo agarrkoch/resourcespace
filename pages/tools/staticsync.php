@@ -797,6 +797,27 @@ function ProcessFolder($folder)
                     }
 
                     # Add any alternative files
+					
+					# Camera card alt file process
+					if (str_ends_with($shortpath, '_WINDOW.mp4')) {
+						$altfiles = array_map(
+						    fn($file) => $folder . DIRECTORY_SEPARATOR . $file,
+						    array_filter(
+						        scandir($folder),
+						        fn($file) => !is_dir($folder . DIRECTORY_SEPARATOR . $file) && !str_ends_with($file, '_WINDOW.mp4')
+						    )
+						);
+						
+						foreach ($altfiles as $af){
+	                        # Create alternative file
+	                        $ext = explode(".", $af);
+	                        $ext = $ext[count($ext) - 1];
+	                        $file_size   = filesize_unlimited($af);
+	                        $aref = add_alternative_file($r, basename($af), $af, basename($af), $ext, $file_size);		
+						}
+					}
+					
+					# default installation process
                     $altpath = $fullpath . $staticsync_alternatives_suffix;
                     if ($staticsync_ingest && file_exists($altpath)) {
                         $adh = opendir($altpath);

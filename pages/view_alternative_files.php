@@ -148,7 +148,6 @@ if ($alt_access) {
 				
                 <div class="AlternativeFileText">
                     <h2><?php echo escape($altfiles[$n]["name"]); ?></h2>
-                    <p><?php echo escape($altfiles[$n]["description"]); ?></p>
                     <p><?php echo escape(str_replace('&nbsp;', ' ', $size_to_print)); ?></p>
                 </div>
             </td>

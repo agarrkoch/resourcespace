@@ -49,6 +49,16 @@ function get_resource_path(
     $fstemplate_alt_storageurl, $fstemplate_alt_scramblekey, $scramble_key, $hide_real_filepath,
     $migrating_scrambled, $scramble_key_old, $filestore_evenspread, $filestore_migrate,
     $baseurl, $k, $get_resource_path_extra_download_query_string_params, $resource_path_pull_cache;
+	
+    // in situ alt files
+	if ($getfilepath && $alternative > 0 && !$generate && !$size){
+		$query = "SELECT description FROM resource_alt_files WHERE resource=? and ref=?;";
+		$path = ps_query($query, ['i', $ref, 'i', $alternative], 0);
+		
+		if ($path){
+			return $path[0]['description'];	
+		}
+    }
 
     if (isset($resource_path_pull_cache[$ref]) && strtolower((string)$extension) == 'jpg') {
         $ref = $resource_path_pull_cache[$ref]["ref"];
