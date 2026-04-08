@@ -276,6 +276,13 @@ function ProcessFolder($folder)
         if (($filetype == "file") && (substr($file, 0, 1) != ".") && (strtolower($file) != "thumbs.db")) {
             
 			##### Edited by Aida Garrido Nov 12, 2025
+			$dir = dirname($shortpath);
+			if (!in_array($dir, $staticsync_whitelist_folders)) {
+			    continue;
+			}
+			
+			$staticsync_whitelist_folders
+			
 			if (strpos($folder, 'Camera Card Delivery') !== false && !str_ends_with($file, '.mp4')) {
 				//Only process window dubs for Camera Card Delivery files
 				    continue;
