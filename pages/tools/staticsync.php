@@ -280,9 +280,7 @@ function ProcessFolder($folder)
 			if (!in_array($dir, $staticsync_whitelist_folders)) {
 			    continue;
 			}
-			
-			$staticsync_whitelist_folders
-			
+						
 			if (strpos($folder, 'Camera Card Delivery') !== false && !str_ends_with($file, '.mp4')) {
 				//Only process window dubs for Camera Card Delivery files
 				    continue;

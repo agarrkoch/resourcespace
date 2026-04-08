@@ -880,7 +880,7 @@ if ($k!="" && !$internal_share_access) {$edit_access=0;}
                                                 {
                                                 $counter++;
                                                 hook("beforesingledownloadsizeresult");
-                                                if(!hook("origdownloadlink"))
+                                                if(!hook("origdownloadlink") && filesize_unlimited($video_preview_file) != filesize_unlimited($path))
                                                     {
                                                     ?>
                                                     <tr class="DownloadDBlend">
@@ -1041,7 +1041,7 @@ if ($k!="" && !$internal_share_access) {$edit_access=0;}
                                             ?>
                                             <tr class="DownloadDBlend">
                                                 <td class="DownloadFileName">
-                                                    <h2><?php echo escape(isset($ffmpeg_preview_download_name) ? $ffmpeg_preview_download_name : str_replace_formatted_placeholder("%extension", $ffmpeg_preview_extension, $lang["cell-fileoftype"])); ?></h2>
+                                                    <h2><?php echo escape(isset($ffmpeg_preview_download_name) ? $ffmpeg_preview_download_name : "Access " . str_replace_formatted_placeholder("%extension", $ffmpeg_preview_extension, $lang["cell-fileoftype"])); ?></h2>
 													<p><?php echo formatfilesize(filesize_unlimited($video_preview_file)); ?></p>
                                                 </td>
                                                 <td <?php hook("modifydownloadbutton") ?> class="DownloadButton">

@@ -2,6 +2,7 @@
 
 // Included from preview_preprocessing.php
 use Montala\ResourceSpace\CommandPlaceholderArg;
+global $access_file_suffixes;
 
 # Increase time limit
 set_time_limit(0);
@@ -117,8 +118,20 @@ if ($generateall) {
     if ($tmp) {
         $shell_exec_cmd = $tmp;
     }
-    run_command($shell_exec_cmd, false, $shell_exec_params);
-
+	
+	$access_file = false;
+	foreach ($access_file_suffixes as $suffix){
+		if (str_ends_with($file, $suffix)) {
+			$access_file = true;
+		}
+	}
+	
+	if ($access_file) {
+		copy($file, $targetfile);
+	} else {
+	    run_command($shell_exec_cmd, false, $shell_exec_params);
+	}
+	
     if (
         $ffmpeg_get_par
         && (
