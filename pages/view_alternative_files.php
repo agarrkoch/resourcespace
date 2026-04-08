@@ -34,10 +34,8 @@ if ($alt_access) {
                 }
                 ?>
 
-                <tr class="DownloadDBlend">
-                    <td colspan="2" id="altfileheader">
-                        <h2><?php echo $alt_type_header; ?></h2>
-                    </td>
+                <tr>
+                    <td colspan="2" id="altfileheader"><?php echo $alt_type_header; ?></td>
                 </tr>
 
                 <?php

@@ -818,7 +818,7 @@ function ProcessFolder($folder)
 	                        $ext = explode(".", $af);
 	                        $ext = $ext[count($ext) - 1];
 	                        $file_size   = filesize_unlimited($af);
-	                        $aref = add_alternative_file($r, basename($af), $af, basename($af), $ext, $file_size);		
+	                        $aref = add_alternative_file($r, basename($af), $af, basename($af), $ext, $file_size, "Source files");		
 						}
 					}
 					
