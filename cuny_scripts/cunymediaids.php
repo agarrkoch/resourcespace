@@ -40,7 +40,8 @@ $shows = [
 ];
 
 $aliases = [
-    "Conversations w/ Jim Zirin" => "Conversations with Jim Zirin"
+    "Conversations w/ Jim Zirin" => "Conversations with Jim Zirin",
+    "Sin Filtro" => "LATiNAS"
 ];
 
 function print_media_dict() {
