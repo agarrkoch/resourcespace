@@ -880,7 +880,7 @@ if ($k!="" && !$internal_share_access) {$edit_access=0;}
                                                 {
                                                 $counter++;
                                                 hook("beforesingledownloadsizeresult");
-                                                if(!hook("origdownloadlink") && filesize_unlimited($video_preview_file) != filesize_unlimited($path))
+                                                if(!hook("origdownloadlink") && (!file_exists($video_preview_file) || filesize_unlimited($video_preview_file) != filesize_unlimited($path)))
                                                     {
                                                     ?>
                                                     <tr class="DownloadDBlend">
