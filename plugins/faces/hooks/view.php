@@ -86,9 +86,21 @@ function HookFacesViewCustompanels()
                 $face_height = $y2 - $y1;
 
                 // Ensure the DISPLAYED face is at least 100px wide
-                $min_display_width = 100;
-                $scale = $face_width < $min_display_width ? $min_display_width / $face_width : 1.0;
+				$min_display_width = 100;
+				$max_display_height = 150;
 
+				// Start with scale for minimum width
+				$scale = 1.0;
+
+				if ($face_width > 0 && $face_width < $min_display_width) {
+				    $scale = $min_display_width / $face_width;
+				}
+
+				// Apply height constraint (may reduce scale)
+				if ($face_height > 0 && ($face_height * $scale) > $max_display_height) {
+				    $scale = $max_display_height / $face_height;
+				}
+				
                 // Scaled face box size
                 $crop_width = $face_width * $scale;
                 $crop_height = $face_height * $scale;
