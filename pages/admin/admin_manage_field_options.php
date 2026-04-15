@@ -229,6 +229,7 @@ if ('true' === $ajax && '' != trim($submit_new_option) && 'add_new' === $submit_
                 ?>
                 <tr id="node_<?php echo $new_record_ref; ?>">
                     <td>
+						<?php echo "line 198";?>
                         <input type="text" class="stdwidth" name="option_name" form="option_<?php echo $new_record_ref; ?>" value="<?php echo escape($new_option_name); ?>" onblur="this.value=this.value.trim()" >
                     </td>
                     <td align="left">0</td>

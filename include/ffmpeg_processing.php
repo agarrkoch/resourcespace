@@ -100,15 +100,45 @@ if ($generateall) {
         $ffmpeg_preview_options = $ffmpeg_preview_gif_options;
     }
 
-    $shell_exec_cmd = $ffmpeg_fullpath . " $ffmpeg_global_options -y -loglevel error -i %%FILE%% " . $ffmpeg_preview_options . " -t %%SECONDS%% -s %%WIDTH%%x%%HEIGHT%% %%TARGETFILE%%";
-
-    $shell_exec_params = [
-        "%%FILE%%" => new CommandPlaceholderArg($file, 'is_valid_rs_path'),
-        "%%SECONDS%%" => (int) $ffmpeg_preview_seconds,
-        "%%WIDTH%%" => (int) $width,
-        "%%HEIGHT%%" => (int) $height,
-        "%%TARGETFILE%%" => new CommandPlaceholderArg($targetfile, 'is_safe_basename'),
-    ];
+	global $window_file_suffixes;
+	$window_file = false;
+	foreach ($window_file_suffixes as $suffix){
+		if (str_ends_with($file, $suffix)) {
+			$window_file = true;
+		}
+	}
+	
+	if ($window_file){
+		global $window_vf;
+		global $font_file;
+		$ffmpeg_fp = '/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg';
+		
+		$tc_esc = getEscapedTimecode($file);
+		$window_vf = str_replace(
+		    ['%%FONT_FILE%%', '%%TC_ESC%%'],
+		    [$font_file, $tc_esc], $window_vf
+		);
+		
+	    $shell_exec_cmd = $ffmpeg_fp . " $ffmpeg_global_options -y -loglevel error -i %%FILE%% " . $ffmpeg_preview_options . " " . $window_vf . " -t %%SECONDS%% -s %%WIDTH%%x%%HEIGHT%% %%TARGETFILE%%";
+	    $shell_exec_params = [
+	        "%%FILE%%" => new CommandPlaceholderArg($file, 'is_valid_rs_path'),
+	        "%%SECONDS%%" => (int) $ffmpeg_preview_seconds,
+	        "%%WIDTH%%" => (int) $width,
+	        "%%HEIGHT%%" => (int) $height,
+	        "%%TARGETFILE%%" => new CommandPlaceholderArg($targetfile, 'is_safe_basename'),
+	    ];
+		
+	} else {
+		
+	    $shell_exec_cmd = $ffmpeg_fullpath . " $ffmpeg_global_options -y -loglevel error -i %%FILE%% " . $ffmpeg_preview_options . " -t %%SECONDS%% -s %%WIDTH%%x%%HEIGHT%% %%TARGETFILE%%";
+	    $shell_exec_params = [
+	        "%%FILE%%" => new CommandPlaceholderArg($file, 'is_valid_rs_path'),
+	        "%%SECONDS%%" => (int) $ffmpeg_preview_seconds,
+	        "%%WIDTH%%" => (int) $width,
+	        "%%HEIGHT%%" => (int) $height,
+	        "%%TARGETFILE%%" => new CommandPlaceholderArg($targetfile, 'is_safe_basename'),
+	    ];	
+	} 
 
     if (isset($ffmpeg_command_prefix)) {
         $shell_exec_cmd = $ffmpeg_command_prefix . " " . $shell_exec_cmd;

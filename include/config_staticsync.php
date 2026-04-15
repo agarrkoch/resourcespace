@@ -3,7 +3,7 @@
 
 #----
 
-$nogo="[subfolder2] [metadata][Adam Finger] [Asian American Life] [Compression1] [Compression2] [Darren] [EBailey] [Final Cut Pro Documents] [Gisela] [Jiayi] [JoseLuis] [Julian] [Kalin] [Larry] [LisaBeth] [Marieve] [Mario] [Nueva York] [Octavio] [Ou] [SamS] [sarah] [Sylvester (XsanVideo)] [Theater BROLL (Press Reels)] [.TemporaryItems] [Theater Talk (XsanVideo)] [TimesTalks 2016] [Transperfect.Ep1101.EPS] [TEST] [.Trashes] [Wei] [Wilson] [Zhai] [.apdisk] [ZHAI_4-10.prproj] [.FCLM-UUID] [.Spotlight-V100] [xml.txt]"; # A list of folders to ignore within the sign folder.
+$nogo="[subfolder2] [metadata][Adam Finger] [Asian American Life] [Compression1] [Compression2] [Darren] [EBailey] [Final Cut Pro Documents] [Gisela] [Jiayi] [JoseLuis] [Julian] [Kalin] [Larry] [LisaBeth] [Marieve] [Mario] [Nueva York] [Octavio] [Ou] [SamS] [sarah] [Sylvester (XsanVideo)] [Theater BROLL (Press Reels)] [.TemporaryItems] [Theater Talk (XsanVideo)] [TimesTalks 2016] [Transperfect.Ep1101.EPS] [TEST] [.Trashes] [Wei] [Wilson] [Zhai] [.apdisk] [ZHAI_4-10.prproj] [.FCLM-UUID] [.Spotlight-V100] [xml.txt] [TEST_LIBRARY] [problem_multiviews]"; # A list of folders to ignore within the sign folder.
 
 
 # Should the generated resource title include the sync folder path?

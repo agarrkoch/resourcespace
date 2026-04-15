@@ -206,6 +206,10 @@ function ProcessFolder($folder)
         }
 
         $fullpath = "{$folder}/{$file}";
+		if (!file_exists($fullpath)) {
+		    continue;
+		}
+
         $filetype = filetype($fullpath);
 
         # Sort directory content so files are processed first.
@@ -274,6 +278,8 @@ function ProcessFolder($folder)
 
         # -------FILES---------------
         if (($filetype == "file") && (substr($file, 0, 1) != ".") && (strtolower($file) != "thumbs.db")) {
+		    $collection = 0;
+		    $treeprocessed = false;
             
 			##### Edited by Aida Garrido Nov 12, 2025
 			$dir = dirname($shortpath);
@@ -286,8 +292,9 @@ function ProcessFolder($folder)
 				    continue;
 			}
 			
-			if (strpos($folder, 'Studio') !== false && !str_ends_with($file, '.mov')) {
-				//Only process window dubs for Camera Card Delivery files
+			//			if (strpos($folder, 'Studio') !== false && !str_ends_with($file, '_MULTIVIEW.mp4') && !str_ends_with($file, 'Line Cut.mov')) {
+
+			if (strpos($folder, 'Studio') !== false && !str_ends_with($file, 'Line Cut.mov') && !str_ends_with($file, '_MULTIVIEW.mp4')) {
 				    continue;
 			}
 			
@@ -333,8 +340,6 @@ function ProcessFolder($folder)
 					$path_parts = array_slice($path_parts, 1, 2);
 					$path_parts_f = array_merge($path_parts, [$date]);
 		            $treenodes=touch_category_tree_level($path_parts_f);
-		            $treeprocessed=true;
-						
 					
 				}
 				
@@ -804,7 +809,7 @@ function ProcessFolder($folder)
                     # Add any alternative files
 					
 					# Camera card alt file process
-					if (str_ends_with($shortpath, '_WINDOW.mp4')) {
+					if (strpos($shortpath, 'Camera Card Delivery') !== false && str_ends_with($shortpath, '_WINDOW.mp4')) {
 						$altfiles = array_map(
 						    fn($file) => $folder . DIRECTORY_SEPARATOR . $file,
 						    array_filter(
@@ -813,6 +818,21 @@ function ProcessFolder($folder)
 						    )
 						);
 						
+						foreach ($altfiles as $af){
+	                        # Create alternative file
+	                        $ext = explode(".", $af);
+	                        $ext = $ext[count($ext) - 1];
+	                        $file_size   = filesize_unlimited($af);
+	                        $aref = add_alternative_file($r, basename($af), $af, basename($af), $ext, $file_size, "Source files");		
+						}
+					}
+					
+					# Studio alt process
+					if (strpos($shortpath, 'Studio') !== false && str_ends_with($shortpath, '_MULTIVIEW.mp4')) {
+						$cmd = "ffprobe -v 0 " . escapeshellarg($fullpath) . " -show_entries format_tags=comment -of default=nw=1:nk=1";
+						$output = shell_exec($cmd);
+						$altfiles = explode("\n", trim($output));
+
 						foreach ($altfiles as $af){
 	                        # Create alternative file
 	                        $ext = explode(".", $af);
