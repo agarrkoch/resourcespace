@@ -199,27 +199,29 @@ function ProcessFolder($folder)
     $files_arr = array();
     $import_paths = array();
 
-    $dh = opendir($folder);
-    while (($file = readdir($dh)) !== false) {
-        if ($file == '.' || $file == '..') {
-            continue;
-        }
+	global $lowlatencyfiles;
+	if (isset($lowlatencyfiles) && !empty($lowlatencyfiles)){
+		$files_arr = $lowlatencyfiles;
+	} else {
+	    $dh = opendir($folder);
+	    while (($file = readdir($dh)) !== false) {
+	        if ($file == '.' || $file == '..') {
+	            continue;
+	        }
 
-        $fullpath = "{$folder}/{$file}";
-		if (!file_exists($fullpath)) {
-		    continue;
-		}
+	        $fullpath = "{$folder}/{$file}";
+	        $filetype = filetype($fullpath);
 
-        $filetype = filetype($fullpath);
-
-        # Sort directory content so files are processed first.
-        if ($filetype == 'dir' || $filetype == 'link') {
-            $directories_arr[] = $fullpath;
-        }
-        if ($filetype == 'file') {
-            $files_arr[] = $fullpath;
-        }
-    }
+	        # Sort directory content so files are processed first.
+	        if ($filetype == 'dir' || $filetype == 'link') {
+	            $directories_arr[] = $fullpath;
+	        }
+	        if ($filetype == 'file') {
+	            $files_arr[] = $fullpath;
+	        }
+	    }
+		
+	}
 
     $import_paths = array_merge($files_arr, $directories_arr);
     $fullpath = '';
@@ -1033,7 +1035,9 @@ function ProcessFolder($folder)
             }
         }
     }
-    closedir($dh);
+	if (isset($dh)){
+		closedir($dh);	
+	}
 }
 
 function staticsync_process_alt($alternativefile, $ref = "", $alternative = "")
@@ -1195,8 +1199,13 @@ function staticsync_process_alt($alternativefile, $ref = "", $alternative = "")
     set_process_lock("staticsync"); // Update the lock so we know it is still processing resources
 }
 
-# Recurse through the folder structure.
-ProcessFolder($syncdir);
+# Recurse through the folder structure, or the specified folder.
+if (isset($lowlatencyfolder)) {
+	$staticsync_whitelist_folders[] = str_replace('/Volumes/', '', $lowlatencyfolder);
+	ProcessFolder($lowlatencyfolder);
+} else {
+    ProcessFolder($syncdir);
+}
 
 debug("StaticSync: \$done = " . json_encode($done));
 
