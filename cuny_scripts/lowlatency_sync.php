@@ -2,6 +2,11 @@
 
 include_once __DIR__ . "/../include/boot.php";
 
+if (is_process_lock("staticsync")) {
+    echo 'Process lock is in place. Deferring.' . PHP_EOL;
+    exit();
+}
+
 $watch_folder = '/Volumes/CUNYTVMEDIA/archive_projects/_watch_for_ingest_RSsync';
 
 if (!is_dir($watch_folder)) {
