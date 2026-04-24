@@ -29,12 +29,12 @@ $telem_studio_folders = array_map(function($path) {
 }, $folders);
 
 // TElements camera card folders
-$cmd = "find '/Volumes/TElements/Camera Card Delivery' -mindepth 2 -maxdepth 2 -type d | grep -Ev '/To_Remove/|/To_Retain/'";
-$output = shell_exec($cmd);
-$folders = array_filter(explode("\n", $output));
-$telem_remote_folders = array_map(function($path) {
-   return preg_replace('#^/Volumes/#', '', $path);
-}, $folders);
+//$cmd = "find '/Volumes/TElements/Camera Card Delivery' -mindepth 2 -maxdepth 2 -type d | grep -Ev '/To_Remove/|/To_Retain/'";
+//$output = shell_exec($cmd);
+//$folders = array_filter(explode("\n", $output));
+//$telem_remote_folders = array_map(function($path) {
+//   return preg_replace('#^/Volumes/#', '', $path);
+//}, $folders);
 
 // CUNYTVMEDIA Photo folders
 // Tiger camera card folders
@@ -46,7 +46,7 @@ $telem_remote_folders = array_map(function($path) {
 //}, $folders);
 
 
-$staticsync_whitelist_folders = array_merge($telem_remote_folders, $telem_studio_folders);
+$staticsync_whitelist_folders = array_merge($telem_studio_folders);
 #####
 
 # added 2024-12-13 dave rice
