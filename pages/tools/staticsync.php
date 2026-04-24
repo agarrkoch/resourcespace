@@ -812,20 +812,18 @@ function ProcessFolder($folder)
 					
 					# Camera card alt file process
 					if (strpos($shortpath, 'Camera Card Delivery') !== false && str_ends_with($shortpath, '_WINDOW.mp4')) {
-						$altfiles = array_map(
-						    fn($file) => $folder . DIRECTORY_SEPARATOR . $file,
-						    array_filter(
-						        scandir($folder),
-						        fn($file) => !is_dir($folder . DIRECTORY_SEPARATOR . $file) && !str_ends_with($file, '_WINDOW.mp4')
-						    )
-						);
-						
+						$cmd = "ffprobe -v 0 " . escapeshellarg($fullpath) . " -show_entries format_tags=comment -of default=nw=1:nk=1";
+						$output = shell_exec($cmd);
+						$altfiles = explode("\n", trim($output));
+
 						foreach ($altfiles as $af){
 	                        # Create alternative file
 	                        $ext = explode(".", $af);
 	                        $ext = $ext[count($ext) - 1];
-	                        $file_size   = filesize_unlimited($af);
-	                        $aref = add_alternative_file($r, basename($af), $af, basename($af), $ext, $file_size, "Source files");		
+							$af_edited = dirname($fullpath) . DIRECTORY_SEPARATOR . basename($af);
+							
+	                        $file_size   = filesize_unlimited($af_edited);
+	                        $aref = add_alternative_file($r, basename($af), $af_edited, basename($af), $ext, $file_size, "Source files");		
 						}
 					}
 					
