@@ -3,6 +3,7 @@
 include_once __DIR__ . "/../../include/boot.php";
 include_once __DIR__ . "/../../include/image_processing.php";
 include_once __DIR__ . "/../../include/config_staticsync.php";
+include_once __DIR__ . "/../../cuny_scripts/duplicate_metadata_update.php";
 command_line_only();
 
 $send_notification  = false;
@@ -407,6 +408,7 @@ function ProcessFolder($folder)
                         $message = str_replace("%resourceref%", implode(",", $duplicates), str_replace("%filename%", $fullpath, $lang['error-duplicatesfound']));
                         debug("STATICSYNC ERROR- " . $message);
                         $errors[] = $message;
+						process_duplicate_resource($fullpath, $duplicates);
                         continue;
                     }
                 }
