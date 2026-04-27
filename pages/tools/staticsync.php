@@ -297,7 +297,7 @@ function ProcessFolder($folder)
 			
 			//			if (strpos($folder, 'Studio') !== false && !str_ends_with($file, '_MULTIVIEW.mp4') && !str_ends_with($file, 'Line Cut.mov')) {
 
-			if (strpos($folder, 'Studio') !== false && !str_ends_with($file, 'Line Cut.mov') && !str_ends_with($file, '_MULTIVIEW.mp4')) {
+			if (strpos($folder, 'Studio') !== false && !str_ends_with($file, 'Line Cut.mov') && !str_ends_with($file, '_MULTIVIEW.mp4') && !str_ends_with($file, 'PGM.mov')) {
 				    continue;
 			}
 			
