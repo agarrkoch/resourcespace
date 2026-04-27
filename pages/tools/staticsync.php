@@ -1200,11 +1200,48 @@ function staticsync_process_alt($alternativefile, $ref = "", $alternative = "")
 }
 
 # Recurse through the folder structure, or the specified folder.
-if (isset($lowlatencyfolder)) {
-	$staticsync_whitelist_folders[] = str_replace('/Volumes/', '', $lowlatencyfolder);
-	ProcessFolder($lowlatencyfolder);
+if (!isset($lowlatencyfolder)) {
+	ProcessFolder($syncdir);
 } else {
-    ProcessFolder($syncdir);
+	global $watch_folder;
+	
+	$iterator = new FilesystemIterator($watch_folder);
+
+	foreach ($iterator as $file) {
+	    if (
+	        $file->isFile() &&
+	        str_ends_with($file->getFilename(), '.json')
+	    ) {
+	        $filepath = $file->getPathname();
+
+	        // Skip partially written files
+	        $size1 = filesize($filepath);
+	        sleep(1);
+	        clearstatcache(true, $filepath);
+	        $size2 = filesize($filepath);
+
+	        if ($size1 !== $size2) {
+	            continue;
+	        }
+
+	        $json = file_get_contents($filepath);
+	        $data = json_decode($json, true);
+
+	        if (json_last_error() !== JSON_ERROR_NONE) {
+	            echo "Bad JSON: $filepath\n";
+	            continue;
+	        }
+
+	        $lowlatencyfolder = $data['folder'] ?? '';
+	        $lowlatencyfiles  = $data['files'] ?? [];
+
+	        echo "Processing: $filepath\n";
+			$staticsync_whitelist_folders[] = str_replace('/Volumes/', '', $lowlatencyfolder);
+			ProcessFolder($lowlatencyfolder);
+
+	        unlink($filepath);
+	    }
+	}
 }
 
 debug("StaticSync: \$done = " . json_encode($done));
