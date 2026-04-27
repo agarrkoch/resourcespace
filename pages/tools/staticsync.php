@@ -223,7 +223,14 @@ function ProcessFolder($folder)
 	    }
 		
 	}
-
+	
+	$relative = str_replace($syncdir . '/', '', $fullpath);
+	if (in_array($relative, $staticsync_whitelist_folders)) {
+	    $import_paths = array_merge($files_arr, $directories_arr);
+	} else {
+		$import_paths = array_merge($directories_arr);
+	}
+	
     $import_paths = array_merge($files_arr, $directories_arr);
     $fullpath = '';
 
@@ -285,18 +292,11 @@ function ProcessFolder($folder)
 		    $treeprocessed = false;
             
 			##### Edited by Aida Garrido Nov 12, 2025
-			$dir = dirname($shortpath);
-			if (!in_array($dir, $staticsync_whitelist_folders)) {
-			    continue;
-			}
-						
 			if (strpos($folder, 'Camera Card Delivery') !== false && !str_ends_with($file, '.mp4')) {
 				//Only process window dubs for Camera Card Delivery files
 				    continue;
 			}
 			
-			//			if (strpos($folder, 'Studio') !== false && !str_ends_with($file, '_MULTIVIEW.mp4') && !str_ends_with($file, 'Line Cut.mov')) {
-
 			if (strpos($folder, 'Studio') !== false && !str_ends_with($file, 'Line Cut.mov') && !str_ends_with($file, '_MULTIVIEW.mp4') && !str_ends_with($file, 'PGM.mov')) {
 				    continue;
 			}
