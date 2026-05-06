@@ -3,7 +3,7 @@
 
 #----
 
-$nogo="[subfolder2] [metadata][Adam Finger] [Asian American Life] [Compression1] [Compression2] [Darren] [EBailey] [Final Cut Pro Documents] [Gisela] [Jiayi] [JoseLuis] [Julian] [Kalin] [Larry] [LisaBeth] [Marieve] [Mario] [Nueva York] [Octavio] [Ou] [SamS] [sarah] [Sylvester (XsanVideo)] [Theater BROLL (Press Reels)] [.TemporaryItems] [Theater Talk (XsanVideo)] [TimesTalks 2016] [Transperfect.Ep1101.EPS] [TEST] [.Trashes] [Wei] [Wilson] [Zhai] [.apdisk] [ZHAI_4-10.prproj] [.FCLM-UUID] [.Spotlight-V100] [xml.txt] [TEST_LIBRARY] [problem_multiviews]"; # A list of folders to ignore within the sign folder.
+$nogo="[subfolder2] [metadata][Adam Finger] [Asian American Life] [Compression1] [Compression2] [Darren] [EBailey] [Final Cut Pro Documents] [Gisela] [Jiayi] [JoseLuis] [Julian] [Kalin] [Larry] [LisaBeth] [Marieve] [Mario] [Nueva York] [Octavio] [Ou] [SamS] [sarah] [Sylvester (XsanVideo)] [Theater BROLL (Press Reels)] [.TemporaryItems] [Theater Talk (XsanVideo)] [TimesTalks 2016] [Transperfect.Ep1101.EPS] [TEST] [.Trashes] [Wei] [Wilson] [Zhai] [.apdisk] [ZHAI_4-10.prproj] [.FCLM-UUID] [.Spotlight-V100] [xml.txt] [TEST_LIBRARY] [problem_multiviews] [TEST_LIBRARY]"; # A list of folders to ignore within the sign folder.
 
 
 # Should the generated resource title include the sync folder path?
@@ -21,7 +21,7 @@ folder is in the $staticsync_whitelist_folders folders and then look in the $nog
 
 #### Edited by Aida G. Nov 12, 2025
 // TElements studio folders
-$cmd = "find '/Volumes/TElements/Studio' -mindepth 2 -type d | grep -Ev '/To_Archive/|/To_Retain/'";
+$cmd = "find '/Volumes/TElements/Studio' -mindepth 2 -type d | grep -Evi 'ISO|/To_Archive/|/To_Retain/'";
 $output = shell_exec($cmd);
 $folders = array_filter(explode("\n", $output));
 $telem_studio_folders = array_map(function($path) {
