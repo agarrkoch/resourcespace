@@ -4,6 +4,7 @@ include_once __DIR__ . "/../../include/boot.php";
 include_once __DIR__ . "/../../include/image_processing.php";
 include_once __DIR__ . "/../../include/config_staticsync.php";
 include_once __DIR__ . "/../../cuny_scripts/duplicate_metadata_update.php";
+include_once dirname(__DIR__, 2) . "/cuny_scripts/resort_order.php";
 command_line_only();
 
 $send_notification  = false;
@@ -206,7 +207,7 @@ function ProcessFolder($folder)
 	} else {
 	    $dh = opendir($folder);
 	    while (($file = readdir($dh)) !== false) {
-	        if ($file == '.' || $file == '..') {
+	        if ($file == '.' || $file == '..' || $file === '.DS_Store') {
 	            continue;
 	        }
 
@@ -224,7 +225,7 @@ function ProcessFolder($folder)
 		
 	}
 	
-	$relative = str_replace($syncdir . '/', '', $fullpath);
+	$relative = str_replace($syncdir . '/', '', $folder);
 	if (in_array($relative, $staticsync_whitelist_folders)) {
 	    $import_paths = array_merge($files_arr, $directories_arr);
 	} else {
@@ -292,6 +293,11 @@ function ProcessFolder($folder)
 		    $treeprocessed = false;
             
 			##### Edited by Aida Garrido Nov 12, 2025
+			$dir = dirname($shortpath);
+			if (!in_array($dir, $staticsync_whitelist_folders)) {
+			    continue;
+			}
+						
 			if (strpos($folder, 'Camera Card Delivery') !== false && !str_ends_with($file, '.mp4')) {
 				//Only process window dubs for Camera Card Delivery files
 				    continue;
@@ -1201,7 +1207,10 @@ function staticsync_process_alt($alternativefile, $ref = "", $alternative = "")
 
 # Recurse through the folder structure, or the specified folder.
 if (!isset($lowlatencyfolder)) {
-	ProcessFolder($syncdir);
+	foreach ($staticsync_whitelist_folders as $w_f){
+		$w_p = rtrim($syncdir, '/\\') . '/' . ltrim($w_f, '/\\');
+		ProcessFolder($w_p);
+	}
 } else {
 	global $watch_folder;
 	
@@ -1237,9 +1246,26 @@ if (!isset($lowlatencyfolder)) {
 
 	        echo "Processing: $filepath\n";
 			$staticsync_whitelist_folders[] = str_replace('/Volumes/', '', $lowlatencyfolder);
-			ProcessFolder($lowlatencyfolder);
+			ProcessFolder($lowlatencyfolder);			
+			
+			# Sort resources in collection
+			$collection_name = strpos($lowlatencyfolder, 'Camera Card Delivery') === false
+			    ? basename($lowlatencyfolder)
+			    : basename(dirname($lowlatencyfolder));
 
-	        unlink($filepath);
+			$sort_order = strpos($lowlatencyfolder, 'Camera Card Delivery') === false
+			    ? "ASC"
+			    : "DESC";
+
+			$query = "SELECT ref FROM collection WHERE name=?;";
+			$c_ref = ps_query($query, ['s', $collection_name]);
+
+			if (!empty($c_ref[0]['ref']))
+			{
+			    resort_resource_collection($c_ref[0]['ref'], $sort_order);
+				unlink($filepath);
+			}
+			
 	    }
 	}
 }
