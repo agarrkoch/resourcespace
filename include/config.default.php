@@ -2485,7 +2485,7 @@ $custom_access_overrides_search_filter = false;
 $resource_request_reason_required = true;
 
 // Create all preview sizes at the full target size if image is smaller (except for HPR as this would result in massive images)
-$previews_allow_enlarge = false;
+$previews_allow_enlarge = true;
 
 // Option to use a random static image from the available slideshow images.
 $static_slideshow_image = false;
