@@ -55,10 +55,3 @@ function resort_resource_collection(
 		 $i += 1;
 	}
 }
-
-$query = "SELECT ref FROM collection WHERE parent=672;";	   
-$a = ps_query($query, []);
-foreach ($a as $c){
-	resort_resource_collection($c['ref'], 'DESC');
-	echo "Processing " . $c['ref'] . PHP_EOL; 
-}
