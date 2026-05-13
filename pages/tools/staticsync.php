@@ -212,7 +212,17 @@ function ProcessFolder($folder)
 	        }
 
 	        $fullpath = "{$folder}/{$file}";
-	        $filetype = filetype($fullpath);
+			
+			$tries = 0;
+			while ($tries++ < 5) {
+			    try {
+			        $filetype = filetype($fullpath);
+			        break;
+			    } catch (\Throwable $e) {
+			        clearstatcache(true, $fullpath);
+			        usleep(50000);
+			    }
+			}
 
 	        # Sort directory content so files are processed first.
 	        if ($filetype == 'dir' || $filetype == 'link') {
@@ -1223,16 +1233,15 @@ if (!isset($lowlatencyfolder)) {
 	    ) {
 	        $filepath = $file->getPathname();
 
-	        // Skip partially written files
-	        $size1 = filesize($filepath);
-	        sleep(1);
-	        clearstatcache(true, $filepath);
-	        $size2 = filesize($filepath);
-
-	        if ($size1 !== $size2) {
-	            continue;
-	        }
-
+			$file_age = time() - filemtime($filepath);
+			if (
+			    isset($staticsync_file_minimum_age)
+			    && $file_age < $staticsync_file_minimum_age
+			) {
+			    echo " - {$filepath} is too new ({$file_age} seconds), skipping\n";
+			    continue;
+			} 
+			
 	        $json = file_get_contents($filepath);
 	        $data = json_decode($json, true);
 
@@ -1265,7 +1274,6 @@ if (!isset($lowlatencyfolder)) {
 			    resort_resource_collection($c_ref[0]['ref'], $sort_order);
 				unlink($filepath);
 			}
-			
 	    }
 	}
 }
