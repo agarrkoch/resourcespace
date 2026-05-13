@@ -1272,6 +1272,26 @@ function create_previews($ref, $thumbonly = false, $extension = "jpg", $previewo
             if ($alternative == -1) {
                 // Not for alternatives
                 $has_image = $generateall ? RESOURCE_PREVIEWS_ALL : RESOURCE_PREVIEWS_MINIMAL;
+				error_log("==================================================");
+				error_log("[HAS_IMAGE DEBUG]");
+				error_log("Resource ref: " . $ref);
+				error_log("generateall = " . var_export($generateall, true));
+				error_log("RESOURCE_PREVIEWS_ALL = " . RESOURCE_PREVIEWS_ALL);
+				error_log("RESOURCE_PREVIEWS_MINIMAL = " . RESOURCE_PREVIEWS_MINIMAL);
+
+				$has_image = $generateall ? RESOURCE_PREVIEWS_ALL : RESOURCE_PREVIEWS_MINIMAL;
+
+				error_log("Assigned has_image = " . $has_image);
+
+				if ($has_image == RESOURCE_PREVIEWS_ALL) {
+				    error_log("[RESULT] FULL preview state assigned");
+				} elseif ($has_image == RESOURCE_PREVIEWS_MINIMAL) {
+				    error_log("[RESULT] MINIMAL preview state assigned");
+				} else {
+				    error_log("[RESULT] UNKNOWN has_image state");
+				}
+
+				error_log("==================================================");
                 ps_query("UPDATE resource SET has_image=?,preview_extension='jpg',preview_attempts=0,file_modified=now() WHERE ref= ?", ['i',$has_image,'i', $ref]);
             }
         }

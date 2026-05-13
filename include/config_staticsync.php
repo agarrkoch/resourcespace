@@ -21,7 +21,7 @@ folder is in the $staticsync_whitelist_folders folders and then look in the $nog
 
 #### Edited by Aida G. Nov 12, 2025
 // TElements studio folders
-$cmd = "find '/Volumes/TElements/Studio' -mindepth 2 -type d | grep -Evi 'ISO|/To_Archive/|/To_Retain/'";
+$cmd = "find '/Volumes/TElements/Studio' -mindepth 2 -type d | grep -Evi 'ISO|TEST_LIBRARY|/To_Archive/|/To_Retain/'";
 $output = shell_exec($cmd);
 $folders = array_filter(explode("\n", $output));
 $telem_studio_folders = array_map(function($path) {
