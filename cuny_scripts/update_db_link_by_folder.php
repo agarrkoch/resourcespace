@@ -16,7 +16,7 @@ $file          = $argv[1];
 
 $json    = file_get_contents($file);
 $folders = json_decode($json, true);
-$unmatched_folders = [];
+$newish_folders = [];
 
 foreach ($folders as $folder_path => $info)
 {
@@ -62,17 +62,23 @@ foreach ($folders as $folder_path => $info)
             } break;
         }
     }
+	
 
-    if (empty($resource_refs)) {
-        $unmatched_folders[$folder_path] = $info;
-		echo "Resources not found under folder " . $names[0] . "\n";
+	$parts = explode('T', $names[0]);
+	$date = $parts[0];
+	$folder_timestamp = strtotime(str_replace('.', '-', $date));
+
+	if (time() - $folder_timestamp > (7 * 24 * 60 * 60)) {
+	    echo "Folder  " . $names[0] . " is older than 7 days. Deleting from JSON." . "\n";
+	} else {
+        $newish_folders[$folder_path] = $info;
     }
 }
 
-if (!empty($unmatched_folders)) {
+if (!empty($newish_folders)) {
     file_put_contents(
         $file,
-        json_encode($unmatched_folders, JSON_PRETTY_PRINT)
+        json_encode($newish_folders, JSON_PRETTY_PRINT)
     );
 } else {
     unlink($file);

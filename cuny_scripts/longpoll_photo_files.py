@@ -8,7 +8,7 @@ import sys
 import os
 import hashlib
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append("/opt/homebrew/bin/")
 import longpoll
 import rsingestmanifest
 
@@ -72,7 +72,10 @@ def transfer_files(src_folder, dst_folder):
     os.rmdir(src_folder)
 
 def update_db_link_by_folder():
-    result = subprocess.run(["php", "/Users/libraryad/Documents/GitHub/imm/resourcespace/update_db_link_by_folder.php", link_json_path], capture_output=True, text=True, start_new_session=True)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    script_path = os.path.join(script_dir, "update_db_link_by_folder.php")
+    
+    result = subprocess.run(["php", script_path, link_json_path], capture_output=True, text=True, start_new_session=True)
     print(result.stdout)
     print(result.stderr)
 
