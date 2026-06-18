@@ -137,17 +137,20 @@ if ($multiprocess) {
 /* ---------------- Build SQL ---------------- */
 error_log("[2] Building resource SQL");
 
-$sql = "SELECT ref,
-               file_extension,
-               IFNULL(preview_attempts, 1) AS preview_attempts,
-               creation_date
-          FROM resource 
-         WHERE ref > 0
-           AND no_file <> 1
-           AND (preview_attempts < ? OR preview_attempts IS NULL)
-           AND file_extension IS NOT NULL
-           AND LENGTH(file_extension) > 0
-           AND LOWER(file_extension) NOT IN (" . ps_param_insert(count($no_preview_extensions)) . ")";
+$sql = "SELECT 
+            ref,
+            file_extension,
+            IFNULL(preview_attempts, 1) AS preview_attempts,
+            creation_date,
+            no_file,
+            has_image
+       FROM resource
+      WHERE ref > 0
+        AND no_file <> 1
+        AND (preview_attempts < ? OR preview_attempts IS NULL)
+        AND file_extension IS NOT NULL
+        AND LENGTH(file_extension) > 0
+        AND LOWER(file_extension) NOT IN (" . ps_param_insert(count($no_preview_extensions)) . ")";
 
 $params = array_merge(
     ["i", SYSTEM_MAX_PREVIEW_ATTEMPTS],
@@ -171,6 +174,48 @@ error_log("[5] Resource query returned " . count($resources) . " rows");
 $loop_counter = 0;
 
 foreach ($resources as $resource) {
+	
+	// ---- WHY RESOURCE IS BEING PROCESSED ----
+	
+    $reasons = [];
+
+    if ($resource['ref'] > 0) {
+        $reasons[] = "ref > 0";
+    }
+
+    if ($resource['no_file'] != 1) {
+        $reasons[] = "no_file != 1";
+    }
+
+    if ($resource['file_extension'] !== null && strlen($resource['file_extension']) > 0) {
+        $reasons[] = "valid extension";
+    }
+
+    if ($resource['preview_attempts'] < SYSTEM_MAX_PREVIEW_ATTEMPTS ||
+        $resource['preview_attempts'] === null) {
+        $reasons[] = "preview_attempts OK";
+    }
+
+    if (!in_array(strtolower($resource['file_extension']), $no_preview_extensions)) {
+        $reasons[] = "extension allowed";
+    }
+
+    if (!isset($extraconditions) || $extraconditions === "" || $noimage) {
+        $reasons[] = "has_image filter not applied";
+    } else {
+        if ($resource['has_image'] != RESOURCE_PREVIEWS_ALL) {
+            $reasons[] = "has_image allowed";
+        }
+    }
+
+    // ---- print full row ----
+    $parts = [];
+
+    foreach ($resource as $col => $val) {
+        $parts[] = strtoupper($col) . ": " . $val;
+    }
+
+    echo implode(" | ", $parts) . " | PASSED: " . implode(", ", $reasons) . "\n";
 
     $loop_counter++;
     error_log("[6] LOOP START #$loop_counter | Resource {$resource['ref']}");
