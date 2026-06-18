@@ -41,7 +41,6 @@ function process_duplicate_resource(string $full_path, array $duplicates): void
 	// get collection refs
 	$query = "SELECT collection as value FROM collection_resource WHERE resource = ?;";
 	$col_refs = ps_query($query, ['i', $dup_ref]);
-	$col_ref = $col_refs[0]['value'];
 
 	// delete collection-resource pairings
 	$query = "DELETE FROM collection_resource WHERE resource = ?;";
