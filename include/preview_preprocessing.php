@@ -554,11 +554,11 @@ global $ffmpeg_preview,$ffmpeg_preview_seconds,$ffmpeg_preview_extension,$ffmpeg
        $ffmpeg_preview_min_width, $ffmpeg_preview_min_height, $ffmpeg_preview_max_width,
        $ffmpeg_preview_max_height, $ffmpeg_preview_force, $ffmpeg_snapshot_frames, $h264_profiles;
 
-debug('FFMPEG-VIDEO: ####################################################################');
-debug('FFMPEG-VIDEO: Start trying FFMPeg for video files -- resource ID ' . $ref);
+echo 'FFMPEG-VIDEO: ####################################################################' . PHP_EOL;
+echo 'FFMPEG-VIDEO: Start trying FFMPeg for video files -- resource ID ' . $ref . PHP_EOL;
 
 if (($ffmpeg_fullpath != false) && !isset($newfile) && in_array($extension, $ffmpeg_supported_extensions)) {
-    debug('FFMPEG-VIDEO: Start process for creating previews...');
+    echo 'FFMPEG-VIDEO: Start process for creating previews...' . PHP_EOL;
 
     if ($alternative == -1) {
         //If we are recreating previews, we should remove the previously created snapshots
@@ -571,17 +571,17 @@ if (($ffmpeg_fullpath != false) && !isset($newfile) && in_array($extension, $ffm
     }
 
     $snapshottime = 1;
-    $duration = 0; // Set this as default if the duration is not determined so that previews will always work
+    $duration = 0;
     $cmd = $ffmpeg_fullpath . ' -i ' . escapeshellarg($file);
     $out = run_command($cmd, true);
 
-    debug("FFMPEG-VIDEO: Running information command: {$cmd}");
+    echo "FFMPEG-VIDEO: Running information command: {$cmd}" . PHP_EOL;
 
     if (preg_match('/Duration: (\d+):(\d+):(\d+)\.\d+, start/', $out, $match)) {
         $duration = $match[1] * 3600 + $match[2] * 60 + $match[3];
-        debug("FFMPEG-VIDEO: \$duration = {$duration} seconds");
+        echo "FFMPEG-VIDEO: \$duration = {$duration} seconds" . PHP_EOL;
 
-        if (isset($ffmpeg_snapshot_seconds)) { // Overrides the other settings
+        if (isset($ffmpeg_snapshot_seconds)) {
             if ($ffmpeg_snapshot_seconds < $duration) {
                 $snapshottime = $ffmpeg_snapshot_seconds;
             }
@@ -589,21 +589,17 @@ if (($ffmpeg_fullpath != false) && !isset($newfile) && in_array($extension, $ffm
             $snapshottime = floor($duration * (isset($ffmpeg_snapshot_fraction) ? $ffmpeg_snapshot_fraction : 0.1));
         }
 
-        // Generate snapshots for the whole video (not for alternatives)
-        // Custom target used ONLY for captured snapshots during the video
         if ($generateall && 1 < $ffmpeg_snapshot_frames && -1 == $alternative) {
             $snapshot_scale           = '';
             $escaped_file             = escapeshellarg($file);
             $escaped_target           = escapeshellarg(get_resource_path($ref, true, 'snapshot', false, 'jpg', -1, 1, false, ''));
             $snapshot_points_distance = max($duration / $ffmpeg_snapshot_frames, 1);
 
-            // Find video resolution, figure out whether it is landscape/ portrait and adjust the scaling for the snapshots accordingly
             include_once __DIR__ . '/video_functions.php';
 
             $video_resolution = get_video_resolution($file);
 
             if ($exiftool_fullpath != false) {
-                // Has it been rotated?
                 $command = $exiftool_fullpath . " -s -s -s -Rotation " . escapeshellarg($file);
                 $rotation = run_command($command);
                 if ($rotation == "90" || $rotation == "270") {
@@ -613,7 +609,7 @@ if (($ffmpeg_fullpath != false) && !isset($newfile) && in_array($extension, $ffm
                 }
             }
 
-            $snapshot_size    = ps_query('SELECT width, height FROM preview_size WHERE id = "pre"');
+            $snapshot_size = ps_query('SELECT width, height FROM preview_size WHERE id = "pre"');
 
             if (isset($snapshot_size[0]) && 0 < count($snapshot_size[0])) {
                 $snapshot_width  = $snapshot_size[0]['width'];
@@ -621,13 +617,10 @@ if (($ffmpeg_fullpath != false) && !isset($newfile) && in_array($extension, $ffm
             }
 
             if ($video_resolution['width'] > $video_resolution['height'] && isset($snapshot_width) && $video_resolution['width'] >= $snapshot_width) {
-                // Landscape
                 $snapshot_scale = "-vf scale={$snapshot_width}:-1";
             } elseif ($video_resolution['width'] < $video_resolution['height'] && isset($snapshot_height) && $video_resolution['height'] >= $snapshot_height) {
-                // Portrait
                 $snapshot_scale = "-vf scale=-1:{$snapshot_height}";
             } else {
-                // Square
                 $snapshot_scale = "-vf scale={$snapshot_width}:-1";
             }
 
@@ -664,22 +657,23 @@ if (($ffmpeg_fullpath != false) && !isset($newfile) && in_array($extension, $ffm
             "%%FILEPATH%%" => new CommandPlaceholderArg($file, 'is_valid_rs_path'),
             "%%TARGET%%" => new CommandPlaceholderArg($target, 'is_valid_rs_path'),
         ];
-        $output = run_command($ffmpeg_fullpath . ' ' . $ffmpeg_global_options . ' -y  -loglevel error -ss %%SNAPSHOTTIME%% -i %%FILEPATH%% ' . $scale . ' -f image2 -vframes 1 %%TARGET%%', false, $cmdparams); // $scale can't be a parameter - see how it is constructed above
 
-        debug("FFMPEG-VIDEO: Get snapshot: {$cmd}");
+        $output = run_command($ffmpeg_fullpath . ' ' . $ffmpeg_global_options . ' -y  -loglevel error -ss %%SNAPSHOTTIME%% -i %%FILEPATH%% ' . $scale . ' -f image2 -vframes 1 %%TARGET%%', false, $cmdparams);
+
+        echo "FFMPEG-VIDEO: Get snapshot: {$cmd}" . PHP_EOL;
     }
 
     if (file_exists($target)) {
         $newfile = $target;
-        debug('FFMPEG-VIDEO: $newfile = ' . $newfile);
+        echo 'FFMPEG-VIDEO: $newfile = ' . $newfile . PHP_EOL;
     }
 
     if ($ffmpeg_preview && ($extension != $ffmpeg_preview_extension || $ffmpeg_preview_force)) {
-        debug('FFMPEG-VIDEO: include ffmpeg_processing.php file...');
+        echo 'FFMPEG-VIDEO: include ffmpeg_processing.php file...' . PHP_EOL;
         include __DIR__ . "/ffmpeg_processing.php";
     }
 
-    debug('FFMPEG-VIDEO: ####################################################################');
+    echo 'FFMPEG-VIDEO: ####################################################################' . PHP_EOL;
 }
 
 /* ----------------------------------------
