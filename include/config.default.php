@@ -270,12 +270,12 @@ $home_themeheaders = false;
 
 // Set your time zone below (default GMT)
 if (function_exists("date_default_timezone_set")) {
-    date_default_timezone_set("UTC");
+    date_default_timezone_set("America/New_York");
 }
 
 // Configuration used to be allow for date offset based on user local time zone. For this to work well the server (or
 // whatever MySQL uses) should be on the same timezone as PHP
-$user_local_timezone = 'UTC';
+$user_local_timezone = 'America/New_York';
 
 // IPTC header - Character encoding auto-detection
 // If using IPTC headers, specify any non-ascii characters used in your local language
@@ -480,7 +480,7 @@ $ffmpeg_preview_options="-f flv -ar 22050 -b:v 650k -ab 32k -ac 1 -strict -2 -lo
 //$ffmpeg_global_options = "-loglevel panic"; // can be used for recent versions of ffmpeg when verbose output prevents run_command completing
 //$ffmpeg_global_options = "-v panic"; // use for older versions of ffmpeg  as above
 $ffmpeg_global_options = "";
-//$ffmpeg_snapshot_fraction=0.1; // Set this to specify a point in the video at which snapshot image is taken. Expressed as a proportion of the video duration so must be set between 0 and 1. Only valid if duration is greater than 10 seconds.
+$ffmpeg_snapshot_fraction=0.75; // Set this to specify a point in the video at which snapshot image is taken. Expressed as a proportion of the video duration so must be set between 0 and 1. Only valid if duration is greater than 10 seconds.
 //$ffmpeg_snapshot_seconds=10; // Set this to specify the number of seconds into the video at which snapshot should be taken, overrides the $ffmpeg_snapshot_fraction setting
 
 /*
@@ -1793,7 +1793,7 @@ $autorotate_ingest = false;
 // The default workflow state for imported files (-2 = pending submission, -1 = pending review, etc.)
 $staticsync_defaultstate = 0;
 // Archive state to set for resources where files have been deleted/moved from syncdir
-$staticsync_deleted_state = 0; // Updated by Aida
+$staticsync_deleted_state = 2;
 // Optional array of archive states for which missing files will be ignored and not marked as deleted, useful when using offline_archive plugin.
 $staticsync_ignore_deletion_states = array(2, 3);
 
@@ -2099,7 +2099,7 @@ $debug_extended_info = false;
 
 // Optional debug log location. Used to specify a full path to debug file and ensure folder permissions allow write access to both the file and the containing folder by web service account.
 // $debug_log_location = "d:/logs/resourcespace.log";
-// $debug_log_location = "/var/log/resourcespace/resourcespace.log";
+$debug_log_location = "/Users/libraryad/Documents/logs";
 
 // Enable Metadata Templates. This should be set to the ID of the resource type that you intend to use for metadata templates.
 // Metadata templates can be selected on the resource edit screen to pre-fill fields.
