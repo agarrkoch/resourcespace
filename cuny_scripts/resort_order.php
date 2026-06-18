@@ -7,7 +7,7 @@ include_once __DIR__ . "/../include/boot.php";
 *
 * @uses ps_query()
 *
-* @param integer $ref              Parent collection name
+* @param integer $ref              Parent collection ref
 * @param string $order_by          ASC or DESC
 * @param string $sort_column       name or created; default name
 *
@@ -30,11 +30,11 @@ function resort_collections(
 }
 
 /**
-* Resorts collections within a parent collection
+* Resorts resources within a collection
 *
 * @uses ps_query()
 *
-* @param integer $ref              Parent collection name
+* @param integer $ref              Collection ref
 * @param string $order_by          ASC or DESC
 * @param string $sort_column       field8; default name
 *
