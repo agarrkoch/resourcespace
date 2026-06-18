@@ -22,6 +22,7 @@ $shows = [
     "CUNY Uncut" => "CNNT",
     "CUNY Laureates" => "CNLR",
     "CUNY Specials" => "SPEC",
+	"DiverseCity" => "DVCT",
     "EdCast" => "EDCA",
     "Frame By Frame" => "FRBF",
     "Graduate Center Presents" => "GCPR",
@@ -42,7 +43,8 @@ $shows = [
 
 $aliases = [
     "Conversations w/ Jim Zirin" => "Conversations with Jim Zirin",
-    "Sin Filtro" => "LATiNAS"
+    "Sin Filtro" => "LATiNAS",
+	"Theater's ATMP" => "Theater All the Moving Parts"
 ];
 
 function print_media_dict() {
