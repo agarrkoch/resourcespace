@@ -122,7 +122,7 @@ function HookFacesViewCustompanels()
                     $bg_size_y
                 );
                 ?>
-                <tr>
+                <tr id="face_row_<?php echo $face['ref']; ?>">
                     <td>
                         <div style="<?php echo $style ?>"></div>
                     </td>
@@ -154,7 +154,12 @@ function HookFacesViewCustompanels()
                     <?php $search_url = generateURL("{$baseurl}/pages/search.php", array("search" => "!face" . $face["ref"])); ?>
                     <a href="<?php echo $search_url ?>" onClick="return CentralSpaceLoad(this,true);">
                     <i class="fa fa-fw fa-search"></i>&nbsp;<?php echo escape($lang["faces-find-matching"]); ?>
-                    </a>
+                    </a><br>
+					<?php if ($edit_access) { ?>
+					    <a href="#" onclick="return DeleteFace(<?php echo $ref ?>, <?php echo $face['ref'] ?>);">
+					        <i class="fa fa-fw fa-trash"></i>&nbsp;<?php echo escape("Delete face"); ?>
+					    </a>
+					<?php } ?>
                     </td>
 
                 </tr>
@@ -193,6 +198,30 @@ function HookFacesViewCustompanels()
         // Blank the existing field.
         api("update_field",{'resource': <?php echo escape($ref) ?>, 'field': <?php echo escape($faces_tag_field) ?>, 'value': ''},function () {SaveFaces();},<?php echo generate_csrf_js_object('faces_autosave'); ?>);
         }
+		
+	function DeleteFace(resource, face)
+		{
+		    if (!confirm("Delete this detected face?"))
+		    {
+		        return false;
+		    }
+
+		    api(
+		        "faces_delete_face",
+		        {
+		            "resource": resource,
+		            "face": face
+		        },
+		        function()
+		        {
+					const row = document.getElementById("face_row_" + face);
+					if (row) row.remove();
+		        },
+		        <?php echo generate_csrf_js_object('faces_delete_face'); ?>
+		    );
+
+		    return false;
+	}
 
     function SaveFaces()
         {

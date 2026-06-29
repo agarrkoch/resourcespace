@@ -866,6 +866,7 @@ const API_NATIVE_WHITELIST = [
     'get_processing_message',
     'delete_resources_in_collection',
     'faces_set_node',
+	'faces_delete_face',
     'update_field'
 ];
 

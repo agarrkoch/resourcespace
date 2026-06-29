@@ -295,3 +295,18 @@ function faces_count_faces()
 {
     return ps_value("SELECT count(*) value FROM resource_face", [], 0);
 }
+
+/**
+ * Delete face
+ *
+ * @return bool       
+ */
+function api_faces_delete_face(int $resource, int $face): bool
+{
+    ps_query(
+        "DELETE FROM resource_face WHERE ref=? AND resource=?",
+        ["i", $face, "i", $resource]
+    );
+
+    return true;
+}
