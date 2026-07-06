@@ -182,23 +182,6 @@ async def extract_faces(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-from datetime import datetime
-
-def debug_log(message):
-    log_file = "/Users/libraryad/Desktop/debuglog.txt"
-
-    try:
-        timestamp = datetime.utcnow().isoformat()
-
-        if isinstance(message, (dict, list)):
-            message = str(message)
-
-        with open(log_file, "a") as f:
-            f.write(f"[{timestamp}] {message}\n")
-
-    except Exception:
-        pass
-
 @app.post("/find_similar_faces")
 async def find_similar_faces(request: FaceSearchRequest):
 
