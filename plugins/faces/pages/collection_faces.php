@@ -603,6 +603,7 @@ foreach ($clusters as $cluster)
 
     foreach ($cluster["faces"] as $face)
         {
+		
         $face_path = get_resource_path($face["resource"], true, "scr", false, "jpg");
         $face_url  = get_resource_path($face["resource"], false, "scr", false, "jpg");
 
@@ -686,10 +687,11 @@ foreach ($clusters as $cluster)
              data-resource="<?php echo (int)$face["resource"]; ?>"
              style="text-align:left; width:120px;">
 
-            <a href="<?php echo $view_url; ?>"
-               onclick="return ModalLoad(this,true);">
-                <div style="<?php echo $style ?>"></div>
-            </a>
+			<a href="<?php echo $view_url; ?>"
+			   target="_blank"
+			   rel="noopener">
+			    <div style="<?php echo $style ?>"></div>
+			</a>
 
             <div>
                 Face #<?php echo $face["ref"]; ?>
@@ -948,9 +950,28 @@ function DeleteFace(resource, face)
         }
 
     var card = document.getElementById("face_card_" + face);
+    var clusterBox = card ? card.closest("[id^='cluster_box_']") : null;
+
     if (card)
         {
         card.remove();
+        }
+
+    if (clusterBox)
+        {
+        var remaining = clusterBox.querySelectorAll("[id^='face_card_']").length;
+        if (remaining === 0)
+            {
+            clusterBox.remove();
+            }
+        else
+            {
+            var titleEl = clusterBox.querySelector(".Title");
+            if (titleEl)
+                {
+                titleEl.textContent = titleEl.textContent.replace(/\d+(?=\s+faces$)/, remaining);
+                }
+            }
         }
 
     api(
@@ -959,7 +980,16 @@ function DeleteFace(resource, face)
             "resource": resource,
             "face": face
         },
-        null,
+        function (result)
+            {
+            if (!result)
+                {
+                // API call failed after we already removed it optimistically —
+                // at minimum surface it, since otherwise the UI silently
+                // disagrees with the database until the next reload.
+                alert("Failed to delete face — please refresh and try again.");
+                }
+            },
         <?php echo generate_csrf_js_object('faces_delete_face'); ?>
     );
 
