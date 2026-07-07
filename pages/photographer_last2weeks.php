@@ -34,7 +34,7 @@ echo '<h3>Current: ' . $currentStart->format('Y.m.d') . ' - ' . $currentEnd->for
 echo '<ul class="ref-list current">';
 
 foreach ($curr_refs as $ref) {
-    $url = 'http://resourcespace/pages/search.php?search=%21collection' . $ref['ref'];
+    $url = 'http://resourcespace/plugins/faces/pages/collection_faces.php?collection=' . $ref['ref'];
 
     echo '<li>';
     echo '<a href="' . $url . '" target="_blank">';
@@ -50,7 +50,7 @@ echo '<h3>Previous: ' . $previousStart->format('Y.m.d') . ' - ' . $previousEnd->
 echo '<ul class="ref-list previous">';
 
 foreach ($prev_refs as $ref) {
-    $url = 'http://resourcespace/pages/search.php?search=%21collection' . $ref['ref'];
+    $url = 'http://resourcespace/plugins/faces/pages/collection_faces.php?collection=' . $ref['ref'];
 
     echo '<li>';
     echo '<a href="' . $url . '" target="_blank">';
