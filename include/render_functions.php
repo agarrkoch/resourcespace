@@ -4957,7 +4957,7 @@ function render_featured_collections(array $ctx, array $items)
             {
             $render_ctx['show_resources_count'] = true;
             }
-		if($is_featured_collection && isset($plugins) && in_array("faces", $plugins) && checkperm('a'))
+		if($is_featured_collection && isset($plugins) && in_array("faces", $plugins) && checkperm('e0'))
 			    {
 			    $render_ctx["tools"][] = $tool_faces;
 			    }

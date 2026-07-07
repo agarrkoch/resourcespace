@@ -3,7 +3,7 @@
 include '../../../include/boot.php';
 include '../../../include/authenticate.php';
 
-if (!checkperm('a'))
+if (!checkperm('e0'))
     {
     exit($lang['error-permissiondenied']);
     }
