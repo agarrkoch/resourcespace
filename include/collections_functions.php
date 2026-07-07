@@ -3757,7 +3757,7 @@ function compile_collection_actions(array $collection_data, $top_actions, $resou
            $download_usage, $home_dash, $top_nav_upload_type, $pagename, $offset, $col_order_by, $find, $default_sort,
            $default_collection_sort, $restricted_share, $hidden_collections, $internal_share_access, $search,
            $usercollection, $disable_geocoding, $collection_download_settings, $contact_sheet, $pagename,$upload_then_edit, $enable_related_resources,$list, $enable_themes,
-           $system_read_only, $USER_SELECTION_COLLECTION;
+           $system_read_only, $USER_SELECTION_COLLECTION, $plugins;
 
     $is_selection_collection = isset($collection_data['ref']) && $collection_data['ref'] == $USER_SELECTION_COLLECTION;
 

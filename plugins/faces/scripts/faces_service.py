@@ -81,6 +81,7 @@ def load_vectors(db_name, collection):
     vectors = []
     index_to_metadata = []
     max_ref = 0
+    tagged_count = 0
 
     for ref, resource, blob, node in results:
         vector = np.frombuffer(blob, dtype=np.float32)
@@ -88,6 +89,8 @@ def load_vectors(db_name, collection):
         vectors.append(vector)
         index_to_metadata.append({"ref": ref, "resource": resource, "node": node})
         max_ref = max(max_ref, ref)
+        if node is not None and node > 0:
+            tagged_count += 1
 
     d = len(vectors[0])
     index = faiss.IndexFlatIP(d)
@@ -100,9 +103,10 @@ def load_vectors(db_name, collection):
         "vectors": np.array(vectors).astype('float32'),
         "last_used": datetime.utcnow(),
         "max_ref": max_ref,
+        "tagged_count": tagged_count,
         "collection": collection,
     }
-    print(f"Loaded {len(vectors)} vectors for key '{key}'.")
+    print(f"Loaded {len(vectors)} vectors for key '{key}' ({tagged_count} tagged).")
 
 # Request model for similarity search
 class FaceSearchRequest(BaseModel):
@@ -126,7 +130,17 @@ def ensure_index_loaded(db_name, collection):
     reasonably fresh, reloading it if needed. Centralised here so this
     check runs once per request (or once per bulk request covering many
     faces) instead of once per face, which is what the old per-face
-    endpoint was effectively doing when called in a loop."""
+    endpoint was effectively doing when called in a loop.
+
+    Freshness is judged on two independent signals, since either one can
+    change without the other:
+      - max_ref:       bumps when a NEW face row is inserted.
+      - tagged_count:   bumps when an EXISTING face row gets tagged (its
+                        `node` goes from NULL/0 to a real value) via a
+                        plain SQL UPDATE elsewhere (e.g. faces_tag() in
+                        PHP), which never touches `ref` and so would
+                        otherwise go undetected by max_ref alone.
+    """
     key = cache_key(db_name, collection)
     now = datetime.utcnow()
 
@@ -137,6 +151,7 @@ def ensure_index_loaded(db_name, collection):
     else:
         last_used = db_indexes[key].get("last_used")
         max_known_ref = db_indexes[key].get("max_ref", 0)
+        known_tagged_count = db_indexes[key].get("tagged_count", 0)
 
         if now - last_used > timedelta(hours=1):
             print(f"Cache for '{key}' is older than 1 hour. Refreshing.")
@@ -146,10 +161,21 @@ def ensure_index_loaded(db_name, collection):
             cursor = conn.cursor()
             cursor.execute("SELECT MAX(ref) FROM resource_face")
             row = cursor.fetchone()
-            conn.close()
             latest_ref = row[0] if row and row[0] is not None else 0
+
+            cursor.execute("SELECT COUNT(*) FROM resource_face WHERE node IS NOT NULL AND node > 0")
+            row = cursor.fetchone()
+            latest_tagged_count = row[0] if row and row[0] is not None else 0
+            conn.close()
+
             if latest_ref > max_known_ref:
                 print(f"New faces detected in '{db_name}'. Reloading vectors.")
+                should_reload = True
+            elif latest_tagged_count != known_tagged_count:
+                print(
+                    f"Tag count changed for '{db_name}' "
+                    f"({known_tagged_count} -> {latest_tagged_count}). Reloading vectors."
+                )
                 should_reload = True
 
     if should_reload:

@@ -4892,6 +4892,12 @@ function render_featured_collections(array $ctx, array $items)
             "text" => $lang['action-select'],
             "custom_onclick" => "return ChangeCollection({$fc['ref']}, '');"
         );
+		
+		global $plugins;
+		$tool_faces = array(
+		    "href" => generateURL("{$baseurl_short}plugins/faces/pages/collection_faces.php", array("collection" => $fc['ref'])),
+		    "text" => 'Faces',
+		);
 
         // Prepare FC images
         $thumbnail_selection_method = $fc["thumbnail_selection_method"];
@@ -4951,6 +4957,10 @@ function render_featured_collections(array $ctx, array $items)
             {
             $render_ctx['show_resources_count'] = true;
             }
+		if($is_featured_collection && isset($plugins) && in_array("faces", $plugins) && checkperm('a'))
+			    {
+			    $render_ctx["tools"][] = $tool_faces;
+			    }
 
 
         if($is_featured_collection_category && !$is_smart_featured_collection)
