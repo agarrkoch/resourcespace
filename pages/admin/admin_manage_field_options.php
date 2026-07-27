@@ -489,8 +489,8 @@ if ($ajax) {
                     ?>
                 </div>
             </div>
-            <div class="clearerleft"></div>
-        <?php } ?>
+			<div class="clearerleft" style="margin-bottom: 30px;"></div>
+			<?php } ?>
         
         <div class="Listview">
             <table class="ListviewStyle">
@@ -540,9 +540,35 @@ if ($ajax) {
                                     >
                                 </td>
 
-                                <td align="left">
-                                    <?php echo $node['use_count']; ?>
-                                </td>
+	<td align="left">
+	    <?php
+	    global $plugins, $baseurl_short, $faces_tag_field;
+
+	    if (checkperm('e0') && in_array('faces', $plugins) && $field == $faces_tag_field)
+	        {
+	        $face_node_url = generateURL(
+	            "{$baseurl_short}plugins/faces/pages/node_faces.php",
+	            array("node" => $node['ref'])
+	        );
+	        ?>
+	        <button
+	            type="submit"
+	            id="option_<?php echo escape($node['ref']); ?>_faces_view"
+	            onclick="
+	                window.location.href = '<?php echo $face_node_url; ?>';
+	                return false;"
+	            class="FacesUseCountBubble"
+	            title="<?php echo escape($lang['faces-view-tagged'] ?? 'View faces tagged with this name'); ?>">
+	            <?php echo escape($node['use_count']); ?>
+	        </button>
+	        <?php
+	        }
+	    else
+	        {
+	        echo escape($node['use_count']);
+	        }
+	    ?>
+	</td>
 
                                 <div class="ListTools">
                                     <form id="option_<?php echo escape($node['ref']); ?>" method="post" action="<?php echo $baseurl_short ?>pages/admin/admin_manage_field_options.php?field=<?php echo urlencode($field); ?>">
