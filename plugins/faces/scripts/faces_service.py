@@ -36,14 +36,45 @@ app.add_middleware(
 face_app = FaceAnalysis(name='buffalo_l')
 face_app.prepare(ctx_id=-1)  # Use CPU
 
-# Dictionary to hold FAISS index and metadata per (database, collection)
+# Dictionary to hold FAISS index and metadata per (database, scope)
 db_indexes = {}
 
 
-def cache_key(db_name, collection):
-    """Cache key must include collection, otherwise a request for one
-    collection can silently reuse another collection's cached index."""
-    return f"{db_name}::{collection or 'all'}"
+def cache_key(db_name, collection, untagged):
+    """Cache key must fully capture the scope of the request, otherwise a
+    request for one scope can silently reuse another scope's cached index.
+
+    collection and untagged are independent, stackable filters now (not
+    mutually exclusive), so the key needs both dimensions:
+      - collection: <id> or 'all'
+      - untagged:   'untagged' (node IS NULL) or 'tagged' (no node filter)
+    e.g. db1::5::untagged, db1::all::untagged, db1::5::tagged
+    """
+    return f"{db_name}::{collection or 'all'}::{'untagged' if untagged else 'tagged'}"
+
+
+def build_face_query(untagged, collection):
+    """Build the WHERE clause + params shared by load_vectors and the
+    freshness checks in ensure_index_loaded, so the two can never drift
+    out of sync with each other.
+
+    Returns (where_sql, params) where where_sql is either '' or a string
+    starting with ' WHERE ...'.
+    """
+    conditions = []
+    params = []
+
+    if collection:
+        conditions.append("""resource IN (
+            SELECT resource FROM collection_resource WHERE collection = %s
+        )""")
+        params.append(collection)
+
+    if untagged:
+        conditions.append("node IS NULL")
+
+    where_sql = f" WHERE {' AND '.join(conditions)}" if conditions else ""
+    return where_sql, params
 
 
 # DB connection helper
@@ -55,33 +86,30 @@ def get_mysql_connection(db_name):
         password=args.db_pass
     )
 
-# Load vectors from MySQL for a given database (+ optional collection)
-def load_vectors(db_name, collection):
+# Load vectors from MySQL for a given database (+ optional collection, or
+# the untagged-only scope)
+def load_vectors(db_name, collection, untagged=False):
+    where_sql, params = build_face_query(untagged, collection)
+
     conn = get_mysql_connection(db_name)
     cursor = conn.cursor()
-    if collection:
-        cursor.execute("""
-            SELECT ref, resource, vector_blob, node
-            FROM resource_face
-            WHERE resource IN (
-                SELECT resource
-                FROM collection_resource
-                WHERE collection = %s
-            )
-        """, (collection,))
-    else:
-        cursor.execute("SELECT ref, resource, vector_blob, node FROM resource_face")
+    cursor.execute(
+        f"SELECT ref, resource, vector_blob, node FROM resource_face{where_sql}",
+        params
+    )
     results = cursor.fetchall()
     conn.close()
 
     if not results:
-        print(f"No face vectors found for '{db_name}' / collection {collection}.")
+        scope_desc = f"collection {collection}" if collection else "all"
+        if untagged:
+            scope_desc += " (untagged only)"
+        print(f"No face vectors found for '{db_name}' / {scope_desc}.")
         return
 
     vectors = []
     index_to_metadata = []
     max_ref = 0
-    tagged_count = 0
 
     for ref, resource, blob, node in results:
         vector = np.frombuffer(blob, dtype=np.float32)
@@ -89,24 +117,25 @@ def load_vectors(db_name, collection):
         vectors.append(vector)
         index_to_metadata.append({"ref": ref, "resource": resource, "node": node})
         max_ref = max(max_ref, ref)
-        if node is not None and node > 0:
-            tagged_count += 1
+
+    row_count = len(vectors)
 
     d = len(vectors[0])
     index = faiss.IndexFlatIP(d)
     index.add(np.array(vectors).astype('float32'))
 
-    key = cache_key(db_name, collection)
+    key = cache_key(db_name, collection, untagged)
     db_indexes[key] = {
         "index": index,
         "metadata": index_to_metadata,
         "vectors": np.array(vectors).astype('float32'),
         "last_used": datetime.utcnow(),
         "max_ref": max_ref,
-        "tagged_count": tagged_count,
+        "row_count": row_count,
         "collection": collection,
+        "untagged": untagged,
     }
-    print(f"Loaded {len(vectors)} vectors for key '{key}' ({tagged_count} tagged).")
+    print(f"Loaded {row_count} vectors for key '{key}'.")
 
 # Request model for similarity search
 class FaceSearchRequest(BaseModel):
@@ -115,6 +144,7 @@ class FaceSearchRequest(BaseModel):
     threshold: float = 0.0
     k: int = 10
     collection: Optional[int] = None
+    untagged: bool = False
 
 # Request model for bulk similarity search — same as above but takes a list
 # of refs and returns matches for all of them from a single FAISS call.
@@ -124,24 +154,34 @@ class FaceBulkSearchRequest(BaseModel):
     threshold: float = 0.0
     k: int = 10
     collection: Optional[int] = None
+    untagged: bool = False
 
-def ensure_index_loaded(db_name, collection):
-    """Make sure the FAISS index for (db_name, collection) is loaded and
+def ensure_index_loaded(db_name, collection, untagged=False):
+    """Make sure the FAISS index for (db_name, scope) is loaded and
     reasonably fresh, reloading it if needed. Centralised here so this
     check runs once per request (or once per bulk request covering many
     faces) instead of once per face, which is what the old per-face
     endpoint was effectively doing when called in a loop.
 
-    Freshness is judged on two independent signals, since either one can
-    change without the other:
-      - max_ref:       bumps when a NEW face row is inserted.
-      - tagged_count:   bumps when an EXISTING face row gets tagged (its
-                        `node` goes from NULL/0 to a real value) via a
-                        plain SQL UPDATE elsewhere (e.g. faces_tag() in
-                        PHP), which never touches `ref` and so would
-                        otherwise go undetected by max_ref alone.
+    `collection` and `untagged` are independent, stackable filters (see
+    build_face_query) — both can be set at once, e.g. "untagged faces in
+    collection 5".
+
+    Freshness is judged on two signals, both scoped by the SAME WHERE
+    clause used in load_vectors (via build_face_query), so the check is
+    always asking "has the exact pool this index was built from changed?"
+    rather than checking the whole table:
+      - max_ref:   bumps when a NEW face row matching the scope appears
+                   (a new face inserted, or an existing face's node
+                   changing such that it now enters/exits the scope).
+      - row_count: catches changes that don't touch `ref` at all — e.g.
+                   an existing row getting tagged via a plain SQL UPDATE
+                   elsewhere (faces_tag() in PHP). If the scope includes
+                   `untagged`, a tag event REMOVES a row from the count;
+                   otherwise it's unaffected. Either direction of change
+                   in row_count is a signal to reload.
     """
-    key = cache_key(db_name, collection)
+    key = cache_key(db_name, collection, untagged)
     now = datetime.utcnow()
 
     should_reload = False
@@ -151,38 +191,44 @@ def ensure_index_loaded(db_name, collection):
     else:
         last_used = db_indexes[key].get("last_used")
         max_known_ref = db_indexes[key].get("max_ref", 0)
-        known_tagged_count = db_indexes[key].get("tagged_count", 0)
+        known_row_count = db_indexes[key].get("row_count", 0)
 
         if now - last_used > timedelta(hours=1):
             print(f"Cache for '{key}' is older than 1 hour. Refreshing.")
             should_reload = True
         else:
+            where_sql, params = build_face_query(untagged, collection)
+
             conn = get_mysql_connection(db_name)
             cursor = conn.cursor()
-            cursor.execute("SELECT MAX(ref) FROM resource_face")
+            cursor.execute(
+                f"SELECT MAX(ref), COUNT(*) FROM resource_face{where_sql}",
+                params
+            )
             row = cursor.fetchone()
-            latest_ref = row[0] if row and row[0] is not None else 0
-
-            cursor.execute("SELECT COUNT(*) FROM resource_face WHERE node IS NOT NULL AND node > 0")
-            row = cursor.fetchone()
-            latest_tagged_count = row[0] if row and row[0] is not None else 0
             conn.close()
 
+            latest_ref = row[0] if row and row[0] is not None else 0
+            latest_row_count = row[1] if row and row[1] is not None else 0
+
             if latest_ref > max_known_ref:
-                print(f"New faces detected in '{db_name}'. Reloading vectors.")
+                print(f"New faces detected for '{key}'. Reloading vectors.")
                 should_reload = True
-            elif latest_tagged_count != known_tagged_count:
+            elif latest_row_count != known_row_count:
                 print(
-                    f"Tag count changed for '{db_name}' "
-                    f"({known_tagged_count} -> {latest_tagged_count}). Reloading vectors."
+                    f"Row count changed for '{key}' "
+                    f"({known_row_count} -> {latest_row_count}). Reloading vectors."
                 )
                 should_reload = True
 
     if should_reload:
-        load_vectors(db_name, collection)
+        load_vectors(db_name, collection, untagged)
 
     if key not in db_indexes:
-        raise HTTPException(status_code=500, detail=f"Unable to load vector index for database '{db_name}' / collection {collection}")
+        scope_desc = f"collection {collection}" if collection else "all"
+        if untagged:
+            scope_desc += " (untagged only)"
+        raise HTTPException(status_code=500, detail=f"Unable to load vector index for database '{db_name}' / {scope_desc}")
 
     db_indexes[key]["last_used"] = now
     return key
@@ -213,7 +259,8 @@ async def find_similar_faces(request: FaceSearchRequest):
 
     db_name = request.db
     collection = request.collection
-    key = ensure_index_loaded(db_name, collection)
+    untagged = request.untagged
+    key = ensure_index_loaded(db_name, collection, untagged)
 
     conn = get_mysql_connection(db_name)
     cursor = conn.cursor()
@@ -266,7 +313,8 @@ async def find_similar_faces_bulk(request: FaceBulkSearchRequest):
     """
     db_name = request.db
     collection = request.collection
-    key = ensure_index_loaded(db_name, collection)
+    untagged = request.untagged
+    key = ensure_index_loaded(db_name, collection, untagged)
 
     refs = [int(r) for r in request.refs]
     if not refs:

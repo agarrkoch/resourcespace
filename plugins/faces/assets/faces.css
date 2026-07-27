@@ -1,0 +1,69 @@
+/**
+ * Shared styles for the faces plugin pages (node_faces.php, unnamed_faces.php,
+ * collection_faces.php). Previously this block only existed inline in
+ * collection_faces.php, so node_faces.php was silently missing it.
+ */
+
+/* Base thumbnail box. Per-face background-position/background-size still
+   get set inline (they depend on that face's bbox + image dimensions), but
+   everything else that was identical across all three pages' inline
+   sprintf() style strings lives here now. */
+.face-thumb
+    {
+    width: 120px;
+    height: 120px;
+    background-color: #111;
+    background-repeat: no-repeat;
+    border: 1px solid #ccc;
+    }
+
+.face-name-editor
+    {
+    width: 120px;
+    max-width: 120px;
+    box-sizing: border-box;
+    overflow: hidden;
+    }
+
+.face-name-editor .dynamickeywords
+    {
+    width: 100%;
+    box-sizing: border-box;
+    }
+
+.face-name-editor .dynamickeywords input
+    {
+    width: 100%;
+    box-sizing: border-box;
+    }
+
+.face-name-editor .keywordsselected
+    {
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+    }
+
+.face-name-editor .keywordselected
+    {
+    display: block;              /* was inline-block — force full-width so it truly wraps within the box */
+    width: 100%;
+    box-sizing: border-box;
+    word-break: break-word;      /* breaks even a long unbroken name, not just at spaces */
+    overflow-wrap: break-word;
+    white-space: normal;
+    }
+
+.face-name-editor .RemoveKeyword
+    {
+    display: inline-block;       /* keeps the "x" from ever being pushed off past the box edge */
+    }
+
+.FacesPagination
+    {
+    margin: 14px 0;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+    }
