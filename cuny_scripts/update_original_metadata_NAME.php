@@ -10,20 +10,32 @@ if (!flock($lockFile, LOCK_EX | LOCK_NB)) {
 }
 
 $resource_type = 1; //photos
-$date = "date('Y-m-d', strtotime('yesterday'));"
+$date = date('Y-m-d', strtotime('yesterday'));
 $start = $date . " 00:00:00";
 $end   = date('Y-m-d 00:00:00', strtotime($date . ' +1 day'));
 $latest_name_node = (int) trim(file_get_contents(__DIR__ . '/update_original_metadata_latest_name_node.txt'));
 
-// Tunable retry settings for network-mount flakiness
 const NET_RETRIES = 5;
 const NET_DELAY_US = 750000; // 750ms
 
 function clear_stale_exiftool_tmp($file) {
     $tmp = $file . '_exiftool_tmp';
-    if (file_exists($tmp)) {
+
+    clearstatcache(true, $tmp);
+    if (!file_exists($tmp)) {
+        return;
+    }
+
+    clearstatcache(true, $tmp);
+    if (!file_exists($tmp)) {
+        return;
+    }
+
+    try {
         @unlink($tmp);
         echo "Removed stale temp file: $tmp" . PHP_EOL;
+    } catch (\ErrorException $e) {
+        echo "Stale temp file already gone: $tmp" . PHP_EOL;
     }
 }
 
@@ -31,14 +43,12 @@ function run_exiftool($cmd, $retries = NET_RETRIES, $delay_us = NET_DELAY_US) {
     $output = null;
     for ($i = 1; $i <= $retries; $i++) {
         $output = shell_exec($cmd . " 2>&1");
-        // exiftool prints errors to stderr like "Error: ..." — treat null or
-        // an explicit error line as a failure worth retrying
         if ($output !== null && stripos($output, 'Error:') === false) {
             return $output;
         }
         usleep($delay_us);
     }
-    return $output; // return whatever we got on the last attempt
+    return $output;
 }
 
 function file_exists_retry($file, $retries = NET_RETRIES, $delay_us = NET_DELAY_US) {
@@ -123,20 +133,24 @@ foreach ($faces as $row) {
     $name = $row['name'];
     $resource_ref = $row['resource'];
 
-    $file_exists = file_exists_retry($file_path);
-    $name_exists = false;
-    if ($file_exists){
-        $name_exists = XMP_name_exists($name, $file_path);
-    }
-    if ($file_exists && !$name_exists){
-        add_XMP_name($name, $file_path);
-        echo "$name added to $file_path" . PHP_EOL;
-        update_db_checksum($resource_ref, $file_path);
-    }
-    else{
-        echo "$name WAS NOT added to $file_path" . PHP_EOL;
-        echo "File exists: " . ($file_exists ? 'true' : 'false') . PHP_EOL;
-        echo "XMP name exists: " . ($name_exists ? 'true' : 'false') . PHP_EOL;
+    try {
+        $file_exists = file_exists_retry($file_path);
+        $name_exists = false;
+        if ($file_exists) {
+            $name_exists = XMP_name_exists($name, $file_path);
+        }
+        if ($file_exists && !$name_exists) {
+            add_XMP_name($name, $file_path);
+            echo "$name added to $file_path" . PHP_EOL;
+            update_db_checksum($resource_ref, $file_path);
+        } else {
+            echo "$name WAS NOT added to $file_path" . PHP_EOL;
+            echo "File exists: " . ($file_exists ? 'true' : 'false') . PHP_EOL;
+            echo "XMP name exists: " . ($name_exists ? 'true' : 'false') . PHP_EOL;
+        }
+    } catch (\Throwable $e) {
+        echo "ERROR processing face ref {$row['ref']} ($name / $file_path): "
+            . $e->getMessage() . PHP_EOL;
     }
     echo "------------" . PHP_EOL;
 }
