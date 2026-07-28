@@ -5910,10 +5910,25 @@ function get_original_imagesize($ref = "", $path = "", $extension = "jpg", $forc
     $file = $path;
 
     // check for valid image
-    if (function_exists('mime_content_type')) {
-        $mime_content_type = mime_content_type($file);
-    } else {
-        $mime_content_type = get_mime_type($file)[0];
+    // Note: file_exists() can succeed (stat) even when the underlying device/mount
+    // is not actually readable (e.g. a dropped network share). A failed read here
+    // is converted by this codebase's custom error handler into a thrown
+    // ErrorException, which the @ operator cannot suppress - so we must catch it
+    // explicitly and treat it the same as a missing file.
+    try {
+        if (function_exists('mime_content_type')) {
+            $mime_content_type = mime_content_type($file);
+        } else {
+            $mime_content_type = get_mime_type($file)[0];
+        }
+    } catch (\Throwable $e) {
+        error_log("get_original_imagesize: could not read '$file' - file may be missing or the underlying volume is unavailable (" . $e->getMessage() . ")");
+        return false;
+    }
+
+    if ($mime_content_type === false || $mime_content_type === null) {
+        error_log("get_original_imagesize: could not read '$file' - file may be missing or the underlying volume is unavailable");
+        return false;
     }
 
     $o_size = ps_query("SELECT " . columns_in("resource_dimensions") . " FROM resource_dimensions WHERE resource=?", array("i",$ref));
@@ -7295,6 +7310,11 @@ function get_image_sizes(int $ref, $internal = false, $extension = "jpg", $onlyi
         $returnline["original"] = 1;
         $dimensions = ps_query("select width,height,file_size,resolution,unit from resource_dimensions where resource=?", array("i",$ref));
 
+        # Track whether the original was actually verified as readable on disk right now,
+        # as opposed to just having a file_exists() stat pass (which can succeed even when
+        # the underlying volume/mount is unreadable, e.g. a dropped network share).
+        $original_unreadable = false;
+
         if (count($dimensions)) {
             $sw = $dimensions[0]['width'];
             if ($sw == 0) {
@@ -7318,6 +7338,7 @@ function get_image_sizes(int $ref, $internal = false, $extension = "jpg", $onlyi
                 $filesize = $resource_data["file_size"];
                 $sw = 0;
                 $sh = 0;
+                $original_unreadable = true;
             }
         }
         if (!is_numeric($filesize)) {
@@ -7332,7 +7353,17 @@ function get_image_sizes(int $ref, $internal = false, $extension = "jpg", $onlyi
         $returnline["extension"] = $extension;
         (isset($resolution)) ? $returnline["resolution"] = $resolution : $returnline["resolution"] = "";
         (isset($unit)) ? $returnline["unit"] = $unit : $returnline["unit"] = "";
-        $return[] = $returnline;
+
+        # If the caller only wants sizes that genuinely exist and are readable
+        # ($onlyifexists = true, the normal front-end case), don't report an
+        # original that we just proved is unreadable - that's what allows the
+        # UI to correctly fall back to its "missing file" / request display
+        # instead of a broken 0x0 download button. Callers that pass
+        # $onlyifexists = false (e.g. admin management screens) still get the
+        # entry so they can see/act on the no_file state.
+        if (!$original_unreadable || !$onlyifexists) {
+            $return[] = $returnline;
+        }
     }
     # loop through all image sizes
     $sizes = ps_query("SELECT " . columns_in("preview_size") . " FROM preview_size ORDER BY width DESC", [], "schema");
