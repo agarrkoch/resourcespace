@@ -54,7 +54,7 @@ def merge_folder_dicts(up_dict, new_dict):
             target_key = folder
         elif only_id_match:  # renamed folder
             target_key = only_id_match
-        elif only_name_match and merged[only_name_match]["files"].keys() == info2["files"].keys():  # deleted folder
+        elif only_name_match and (merged[only_name_match]["files"].keys() if isinstance(merged[only_name_match]["files"], dict) else set()) == (info2["files"].keys() if isinstance(info2["files"], dict) else set()):  # deleted folder
             target_key = only_name_match
         else:  # new folder
             merged[folder] = info2
