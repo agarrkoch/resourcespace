@@ -184,7 +184,8 @@ function ProcessFolder($folder)
            $view_title_field, $filename_field, $FIXED_LIST_FIELD_TYPES,
            $staticsync_whitelist_folders,$staticsync_ingest_force,$errors, $category_tree_add_parents,
            $staticsync_alt_suffixes, $staticsync_alt_suffix_array, $staticsync_file_minimum_age, $userref,
-           $resource_type_extension_mapping_default, $resource_type_extension_mapping, $restypes;
+           $resource_type_extension_mapping_default, $resource_type_extension_mapping, $restypes, $staticsync_sortmaps;
+; 
 
     $collection = 0;
     $treeprocessed = false;
@@ -207,7 +208,7 @@ function ProcessFolder($folder)
 	} else {
 	    $dh = opendir($folder);
 	    while (($file = readdir($dh)) !== false) {
-	        if ($file == '.' || $file == '..' || $file === '.DS_Store') {
+	        if ($file == '.' || $file == '..' || $file === '.DS_Store' || str_ends_with($file, '#SAN')) {
 	            continue;
 	        }
 
@@ -520,6 +521,21 @@ function ProcessFolder($folder)
                                         )
                                     )
                                 );
+								
+								if (isset($staticsync_sortmaps)) {
+								    foreach ($staticsync_sortmaps as $sortmap) {
+								        $match = $sortmap["match"];
+								        if (strpos("/" . $shortpath, $match) !== false) {
+								            if (isset($sortmap[$b])) {
+								                $direction = $sortmap[$b];
+								                echo " - \$staticsync_sortmaps - direction for field b=$b => $direction" . PHP_EOL;
+								                resort_collections($parent, $direction);
+								                echo " - \$staticsync_sortmaps - resort_collections() called for collection parent ref " . $parent . PHP_EOL;
+								            }
+								            break;
+								        }
+								    }
+								}							
 
                                 if ($updated_fc_category === false) {
                                     echo " - Unable to update '{$fc_categ_name}' with ref #{$fc_categ_ref} to a Featured Collection Category" . PHP_EOL;
@@ -564,6 +580,7 @@ function ProcessFolder($folder)
                         if ($collection == 0) {
                             $collection = create_collection($userref, ucwords($name));
                             echo " - Created '{$name}' with ref #{$collection}" . PHP_EOL;
+							
 
                             $updated_fc_category = save_collection(
                                 $collection,
@@ -575,6 +592,21 @@ function ProcessFolder($folder)
                                     )
                                 )
                             );
+							
+							if (isset($staticsync_sortmaps)) {
+							    foreach ($staticsync_sortmaps as $sortmap) {
+							        $match = $sortmap["match"];
+							        if (strpos("/" . $shortpath, $match) !== false) {
+							            $matched_any = true;
+							            if (isset($sortmap[$b])) {
+							                $direction = $sortmap[$b];
+							                resort_collections($collection_parent, $direction);
+							            } 
+							            break;
+							        }
+							    }
+							}
+
 
                             if ($updated_fc_category === false) {
                                 echo " - Unable to update '{$name}' with ref #{$collection} to be a Featured Collection under parent ref #{$collection_parent}" . PHP_EOL;
@@ -986,13 +1018,83 @@ function ProcessFolder($folder)
                     || (isset($resource_deletion_state) && $done[$shortpath]["archive"] != $resource_deletion_state) // or if resource is not in system deleted state,
                     || (isset($staticsync_revive_state) && $done[$shortpath]["archive"] == $staticsync_deleted_state)
             ) { // or resource is currently in staticsync deleted state and needs to be reinstated
+				
+				echo "\n=== ENTERED MAIN CONDITION ===\n";
+				echo "shortpath: {$shortpath}\n";
+
+				// Debug state of $done entry
+				echo "done[archive]: " . ($done[$shortpath]["archive"] ?? "NULL/UNSET") . "\n";
+				echo "done[modified]: " . ($done[$shortpath]["modified"] ?? "NULL/UNSET") . "\n";
+
+				echo "resource_deletion_state: " . ($resource_deletion_state ?? "UNSET") . "\n";
+			 	echo "staticsync_revive_state: " . ($staticsync_revive_state ?? "UNSET") . "\n";
+				echo "staticsync_deleted_state: " . ($staticsync_deleted_state ?? "UNSET") . "\n";
+
+				// Identify WHICH condition triggered entry
+				if (!isset($done[$shortpath]["archive"])) {
+					echo "[TRIGGER] archive is NOT set in \$done\n";
+				}
+				
+				if (isset($resource_deletion_state) && isset($done[$shortpath]["archive"]) && $done[$shortpath]["archive"] != $resource_deletion_state) {
+					echo "[TRIGGER] archive mismatch with resource_deletion_state\n";
+					echo "  done archive: " . $done[$shortpath]["archive"] . "\n";
+					echo "  expected state: " . $resource_deletion_state . "\n";
+				}
+
+				if (isset($staticsync_revive_state) && isset($done[$shortpath]["archive"]) && $done[$shortpath]["archive"] == $staticsync_deleted_state) {
+					echo "[TRIGGER] archive is in staticsync_deleted_state and may need revive\n";
+					echo "  done archive: " . $done[$shortpath]["archive"] . "\n";
+					echo "  deleted state: " . $staticsync_deleted_state . "\n";
+					echo "  revive state: " . $staticsync_revive_state . "\n";
+				}
+				
                 if (!file_exists($fullpath)) {
                     echo " - Warning: File '{$fullpath}' does not exist anymore!";
                     continue;
                 }
+				
+				$filemod = filemtime($fullpath);
 
-                $filemod = filemtime($fullpath);
                 if (isset($done[$shortpath]["modified"]) && $filemod > strtotime($done[$shortpath]["modified"]) || (isset($staticsync_revive_state) && $done[$shortpath]["archive"] == $staticsync_deleted_state)) {
+					
+					$cond1 = (isset($done[$shortpath]["modified"]) && $filemod > strtotime($done[$shortpath]["modified"]));
+					$cond2 = (isset($staticsync_revive_state) && $done[$shortpath]["archive"] == $staticsync_deleted_state);
+
+					echo "\n--- CONDITION DEBUG ---\n";
+					echo "shortpath: {$shortpath}\n";
+
+					echo "cond1 (file modified check): " . ($cond1 ? "TRUE" : "FALSE") . "\n";
+					if (isset($done[$shortpath]["modified"])) {
+					    echo "  filemod: {$filemod}\n";
+					    echo "  stored modified: " . $done[$shortpath]["modified"] . "\n";
+					    echo "  stored modified ts: " . strtotime($done[$shortpath]["modified"]) . "\n";
+					} else {
+					    echo "  stored modified: NOT SET\n";
+					}
+
+					echo "cond2 (revive state check): " . ($cond2 ? "TRUE" : "FALSE") . "\n";
+					echo "  staticsync_revive_state: " . ($staticsync_revive_state ?? "UNSET") . "\n";
+					echo "  archive value: " . ($done[$shortpath]["archive"] ?? "NULL/UNSET") . "\n";
+					echo "  staticsync_deleted_state: " . ($staticsync_deleted_state ?? "UNSET") . "\n";
+
+					if ($cond1 || $cond2) {
+					    echo ">>> IF BLOCK ENTERED (at least one condition is TRUE)\n";
+
+					    if ($cond1) {
+					        echo "  -> TRIGGER: file modified is newer than stored modified time\n";
+					    }
+
+					    if ($cond2) {
+					        echo "  -> TRIGGER: archive is in staticsync_deleted_state (revive condition)\n";
+					    }
+
+					} else {
+					    echo ">>> IF BLOCK NOT ENTERED\n";
+					}
+
+					echo "--- END CONDITION DEBUG ---\n\n";
+					
+					
                     $count++;
                     # File has been modified since we last created previews. Create again.
                     $rd = ps_query("SELECT ref, has_image, file_modified, file_extension, archive FROM resource WHERE file_path= ?", ['s', $shortpath]);
@@ -1256,24 +1358,8 @@ if (!isset($lowlatencyfolder)) {
 	        echo "Processing: $filepath\n";
 			$staticsync_whitelist_folders[] = str_replace('/Volumes/', '', $lowlatencyfolder);
 			ProcessFolder($lowlatencyfolder);			
-			
-			# Sort resources in collection
-			$collection_name = strpos($lowlatencyfolder, 'Camera Card Delivery') === false
-			    ? basename($lowlatencyfolder)
-			    : basename(dirname($lowlatencyfolder));
 
-			$sort_order = strpos($lowlatencyfolder, 'Camera Card Delivery') === false
-			    ? "ASC"
-			    : "DESC";
-
-			$query = "SELECT ref FROM collection WHERE name=?;";
-			$c_ref = ps_query($query, ['s', $collection_name]);
-
-			if (!empty($c_ref[0]['ref']))
-			{
-			    resort_resource_collection($c_ref[0]['ref'], $sort_order);
-				unlink($filepath);
-			}
+			unlink($filepath);
 	    }
 	}
 }
@@ -1309,7 +1395,8 @@ foreach ($alternativefiles as $alternativefile) {
     }
 }
 
-#### Edited by Aida G. Nov 5, 2025
+
+/*
 
 echo " - Checking deleted files" . PHP_EOL;
 
@@ -1355,21 +1442,22 @@ if (!$staticsync_ingest) {
                 if (!isset($rf["alternative"])) {
                     echo " - File no longer exists: " . $rf["ref"] . " " . $fp . PHP_EOL;
                     # Set to archived, unless state hasn't changed since script started.
-                    if (isset($staticsync_deleted_state)) {
-                        ps_query("UPDATE resource SET archive= ? WHERE ref= ?", ['i', $staticsync_deleted_state, 'i', $rf['ref']]);
-                    } else {
-                        delete_resource($rf["ref"]);
-                    }
-                    if (isset($resource_deletion_state) && $staticsync_deleted_state == $resource_deletion_state) {
+                    //if (isset($staticsync_deleted_state)) {
+                    //    ps_q uery("UPDATE resource SET archive= ? WHERE ref= ?", ['i', $staticsync_deleted_state, 'i', $rf['ref']]);
+                    //} else {
+                    //    delete_resource($rf["ref"]);
+                    //}
+                    //if (isset($resource_deletion_state) && $staticsync_deleted_state == $resource_deletion_state) {
                         // Only remove from collections if we are really deleting this. Some configurations may have a separate state or synced resources may be temporarily absent
-                        ps_query("DELETE FROM collection_resource WHERE resource= ?", ['i', $rf['ref']]);
-                    }
+                    //    ps_query("DELETE FROM collection_resource WHERE resource= ?", ['i', $rf['ref']]);
+                    //}
                     # Log this
-                    resource_log($rf['ref'], LOG_CODE_STATUS_CHANGED, '', '', $rf["archive"], $staticsync_deleted_state);
-                } else {
-                    echo " - Alternative file no longer exists: resource " . $rf["ref"] . " alt:" . $rf["alternative"] . " " . $fp . PHP_EOL;
-                    ps_query("DELETE FROM resource_alt_files WHERE ref= ?", ['i', $rf['alternative']]);
-                }
+                    //resource_log($rf['ref'], LOG_CODE_STATUS_CHANGED, '', '', $rf["archive"], $staticsync_deleted_state);
+                } 
+				//else {
+                //    echo " - Alternative file no longer exists: resource " . $rf["ref"] . " alt:" . $rf["alternative"] . " " . $fp . PHP_EOL;
+                //    ps_query("DELETE FROM resource_alt_files WHERE ref= ?", ['i', $rf['alternative']]);
+                //}
             }
         }
     }
@@ -1400,6 +1488,7 @@ if (!$staticsync_ingest) {
     }
 }
 
+*/
 
 //if (count($errors) > 0) {
 //    echo PHP_EOL . "ERRORS: -" . PHP_EOL;

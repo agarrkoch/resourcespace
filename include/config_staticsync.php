@@ -3,7 +3,7 @@
 
 #----
 
-$nogo="[subfolder2] [metadata][Adam Finger] [Asian American Life] [Compression1] [Compression2] [Darren] [EBailey] [Final Cut Pro Documents] [Gisela] [Jiayi] [JoseLuis] [Julian] [Kalin] [Larry] [LisaBeth] [Marieve] [Mario] [Nueva York] [Octavio] [Ou] [SamS] [sarah] [Sylvester (XsanVideo)] [Theater BROLL (Press Reels)] [.TemporaryItems] [Theater Talk (XsanVideo)] [TimesTalks 2016] [Transperfect.Ep1101.EPS] [TEST] [.Trashes] [Wei] [Wilson] [Zhai] [.apdisk] [ZHAI_4-10.prproj] [.FCLM-UUID] [.Spotlight-V100] [xml.txt] [TEST_LIBRARY] [problem_multiviews] [TEST_LIBRARY]"; # A list of folders to ignore within the sign folder.
+$nogo="[subfolder2] [metadata][Adam Finger] [Asian American Life] [Compression1] [Compression2] [Darren] [EBailey] [Final Cut Pro Documents] [Gisela] [Jiayi] [JoseLuis] [Julian] [Kalin] [Larry] [LisaBeth] [Marieve] [Mario] [Nueva York] [Octavio] [Ou] [SamS] [sarah] [Sylvester (XsanVideo)] [Theater BROLL (Press Reels)] [.TemporaryItems] [Theater Talk (XsanVideo)] [TimesTalks 2016] [Transperfect.Ep1101.EPS] [TEST] [.Trashes] [Wei] [Wilson] [Zhai] [.apdisk] [ZHAI_4-10.prproj] [.FCLM-UUID] [.Spotlight-V100] [xml.txt] [TEST_LIBRARY] [problem_multiviews] [TEST_LIBRARY] [TEST_LIBRARY_LINE_CUT]"; # A list of folders to ignore within the sign folder.
 
 
 # Should the generated resource title include the sync folder path?
@@ -49,8 +49,6 @@ $telem_studio_folders = array_map(function($path) {
 $staticsync_whitelist_folders = array_merge($telem_studio_folders);
 #####
 
-# added 2024-12-13 dave rice
-
 # StaticSync Path to metadata mapping
 # ------------------------
 # It is possible to take path information and map selected parts of the path to metadata fields.
@@ -59,8 +57,6 @@ $staticsync_whitelist_folders = array_merge($telem_studio_folders);
 # folder heirarchy.
 # Use the line below as an example. Repeat this for every mapping you wish to set up
 
-
-#### Edited by Aida G. Nov 12, 2025	
 #Studio
 	# Asset Types
 	$staticsync_mapfolders[]=array
@@ -124,6 +120,29 @@ $staticsync_mapped_category_tree=91;
 $staticsync_filepath_to_field=92;
 
 
+## Sort mapping
+$staticsync_sortmaps[]=array
+	(
+	"match"=>"/Photos/",
+	1=>'ASC',
+	2=>'DESC',
+	3=>'ASC',
+	);
+
+$staticsync_sortmaps[]=array
+	(
+	"match"=>"/Camera Card Delivery/",
+	1=>'ASC',
+	2=>'DESC',
+	);		
+
+$staticsync_sortmaps[]=array
+	(
+	"match"=>"/Studio/",
+	1=>'ASC',
+	2=>'DESC',
+	3=>'ASC',
+	);
 
 // Log developer debug information to the debug log (filestore/tmp/debug.txt)?  As the default location is world-readable it is recommended for production systems to change the location to somewhere outside of the web directory by also setting $debug_log_location.
 $debug_log=true;
