@@ -55,3 +55,12 @@ function resort_resource_collection(
 		 $i += 1;
 	}
 }
+
+$query = "SELECT * FROM collection WHERE parent IN (SELECT ref FROM collection where parent = ?);";	   
+$c_array = ps_query($query, ['i', 690]);
+
+foreach ($c_array as $c){
+	echo $c['ref'] . PHP_EOL;
+	resort_resource_collection($c['ref'], 'ASC');
+	
+}
