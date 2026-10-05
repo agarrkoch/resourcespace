@@ -392,28 +392,27 @@ foreach ($clusters_to_render as $cluster)
     {
     $cluster_id++;
 
-    // content-visibility:auto tells the browser to skip layout/style/paint
-    // work entirely for this box while it's off-screen, and do it lazily
-    // as the user scrolls near it — this is the main remaining lever now
-    // that images and the tag widget are already lazy: with potentially
-    // thousands of cluster boxes on a page, laying out all of them upfront
-    // is itself expensive regardless of what's inside each one.
-    // contain-intrinsic-height gives the browser a rough placeholder
-    // height (based on face count) so the page doesn't jump around as
-    // boxes get measured for real once visible.
-    $rows_estimate = max(1, (int) ceil(count($cluster["faces"]) / 8));
-    $height_estimate = 70 + ($rows_estimate * 250);
+	// Data needed to delete each face in this cluster: resource + ref
+	    $cluster_face_refs = array_map(function ($face) {
+	        return [
+	            'resource' => $face["resource"],
+	            'ref' => $face["ref"],
+	        ];
+	        }, $cluster["faces"]);
 
-    echo "<div class='RecordBox' id='cluster_box_" . $cluster_id . "' "
-        . "style='content-visibility:auto; contain-intrinsic-height:" . $height_estimate . "px;'>";
-    echo "<div class='RecordPanel'>";
-
-    echo "<div class='Title'>";
-    echo "Cluster #" . $cluster_id . " — " . count($cluster["faces"]) . " faces";
-    echo "</div>";
-
-    echo "<div class='Listview'>";
-    echo "<div style='display:flex;flex-wrap:wrap;gap:36px 28px;padding:16px;'>";
+	    echo "<div class='RecordBox' id='cluster_box_" . $cluster_id . "'>";
+	    echo "<div class='RecordPanel'>";
+	    echo "<div class='Title' style='display:flex;align-items:center;justify-content:space-between;gap:12px;'>";
+	    echo "<span>Cluster #" . $cluster_id . " — " . count($cluster["faces"]) . " faces</span>";
+	    echo "<button type='button' class='DeleteAllFacesBtn' "
+	        . "data-cluster-id='" . $cluster_id . "' "
+	        . "data-faces='" . htmlspecialchars(json_encode($cluster_face_refs), ENT_QUOTES) . "' "
+	        . "onclick='return DeleteAllFacesInCluster(this);'>"
+	        . "Delete all faces"
+	        . "</button>";
+	    echo "</div>";
+	    echo "<div class='Listview'>";
+	    echo "<div style='display:flex;flex-wrap:wrap;gap:36px 28px;padding:16px;' id='cluster_faces_" . $cluster_id . "'>";
 
 foreach ($cluster["faces"] as $face)
         {

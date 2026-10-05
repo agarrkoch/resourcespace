@@ -245,15 +245,27 @@ foreach ($clusters as $cluster)
     {
     $cluster_id++;
 
-    echo "<div class='RecordBox' id='cluster_box_" . $cluster_id . "'>";
-    echo "<div class='RecordPanel'>";
+	// Data needed to delete each face in this cluster: resource + ref
+	    $cluster_face_refs = array_map(function ($face) {
+	        return [
+	            'resource' => $face["resource"],
+	            'ref' => $face["ref"],
+	        ];
+	        }, $cluster["faces"]);
 
-    echo "<div class='Title'>";
-    echo "Cluster #" . $cluster_id . " — " . count($cluster["faces"]) . " faces";
-    echo "</div>";
-
-    echo "<div class='Listview'>";
-    echo "<div style='display:flex;flex-wrap:wrap;gap:36px 28px;padding:16px;'>";
+	    echo "<div class='RecordBox' id='cluster_box_" . $cluster_id . "'>";
+	    echo "<div class='RecordPanel'>";
+	    echo "<div class='Title' style='display:flex;align-items:center;justify-content:space-between;gap:12px;'>";
+	    echo "<span>Cluster #" . $cluster_id . " — " . count($cluster["faces"]) . " faces</span>";
+	    echo "<button type='button' class='DeleteAllFacesBtn' "
+	        . "data-cluster-id='" . $cluster_id . "' "
+	        . "data-faces='" . htmlspecialchars(json_encode($cluster_face_refs), ENT_QUOTES) . "' "
+	        . "onclick='return DeleteAllFacesInCluster(this);'>"
+	        . "Delete all faces"
+	        . "</button>";
+	    echo "</div>";
+	    echo "<div class='Listview'>";
+	    echo "<div style='display:flex;flex-wrap:wrap;gap:36px 28px;padding:16px;' id='cluster_faces_" . $cluster_id . "'>";
 
 foreach ($cluster["faces"] as $face)
         {

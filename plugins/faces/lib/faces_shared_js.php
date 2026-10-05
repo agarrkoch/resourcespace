@@ -215,3 +215,46 @@ function DeleteFace(resource, face)
 
     return false;
     }
+function DeleteAllFacesInCluster(btn)
+    {
+    var clusterId = btn.getAttribute('data-cluster-id');
+    var faces = JSON.parse(btn.getAttribute('data-faces'));
+
+    if (!faces.length)
+        {
+        return false;
+        }
+
+    if (!confirm("Delete all " + faces.length + " faces in this cluster?"))
+        {
+        return false;
+        }
+
+    faces.forEach(function (face)
+        {
+        removeFaceCard(face.ref);
+        api(
+            "faces_delete_face",
+            {
+                "resource": face.resource,
+                "face": face.ref
+            },
+            function (result)
+                {
+                if (!result)
+                    {
+                    alert("Failed to delete face — please refresh and try again.");
+                    }
+                },
+            <?php echo generate_csrf_js_object('faces_delete_face'); ?>
+        );
+        });
+
+    var box = document.getElementById('cluster_box_' + clusterId);
+    if (box)
+        {
+        box.remove();
+        }
+
+    return false;
+    }
