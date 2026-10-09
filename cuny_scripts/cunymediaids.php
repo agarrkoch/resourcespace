@@ -51,7 +51,8 @@ $shows = [
 $aliases = [
     "Conversations w/ Jim Zirin" => "Conversations with Jim Zirin",
     "Sin Filtro" => "LATiNAS",
-	"Theater's ATMP" => "Theater All the Moving Parts"
+	"Theater's ATMP" => "Theater All the Moving Parts",
+	"GC Presents" => "Graduate Center Presents",
 ];
 
 function print_media_dict() {
