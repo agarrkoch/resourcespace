@@ -216,17 +216,6 @@ if changes:
                     db_file_path = os.path.join(folder, lp.folders_files_detected[folder]['files'][file]['name'])
                     file_path_for_download = os.path.join(new_download_path, lp.folders_files_detected[folder]['files'][file]['name'])
                     lp.download(db_file_path, file_path_for_download)
-
-                    # Check EXIF orientation and auto-orient if it's not 1
-                    result = subprocess.run(
-                        ["identify", "-format", "%[EXIF:Orientation]", file_path_for_download],
-                        capture_output=True, text=True
-                    )
-                    orientation = result.stdout.strip().splitlines()[0] if result.stdout.strip() else ""
-
-                    if orientation and orientation != "1":
-                        print(f"  Reorienting {file_path_for_download} (orientation={orientation})")
-                        subprocess.run(["mogrify", "-auto-orient", file_path_for_download], check=True)
                         
                     manifest.FILES.append(file_path_for_download)
             
